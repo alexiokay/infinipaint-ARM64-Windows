@@ -437,6 +437,16 @@ endif()
 
 if(GRAPHICS_BACKEND STREQUAL "Vulkan")
     target_compile_definitions(main PRIVATE USE_BACKEND_VULKAN SK_VULKAN)
+    # Skia bundles the Vulkan headers in its package; expose them so the Vulkan
+    # backend sources compile on Windows+Conan (Linux/macOS get them via the
+    # system Vulkan SDK). Iterate all build types so this is config-agnostic.
+    foreach(_cfg RELEASE DEBUG RELWITHDEBINFO MINSIZEREL)
+        foreach(_inc ${skia-infinipaint_INCLUDE_DIRS_${_cfg}})
+            if(EXISTS "${_inc}/third_party/externals/vulkan-headers/include/vulkan/vulkan_core.h")
+                target_include_directories(main PRIVATE "${_inc}/third_party/externals/vulkan-headers/include")
+            endif()
+        endforeach()
+    endforeach()
     if(USE_GRAPHITE)
         target_compile_definitions(main PRIVATE SK_GRAPHITE USE_SKIA_BACKEND_GRAPHITE)
         message("Using Vulkan Graphite Backend")
