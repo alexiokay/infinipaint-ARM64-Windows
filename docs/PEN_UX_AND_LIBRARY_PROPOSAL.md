@@ -18,7 +18,7 @@ branch; the existing upstream pen PRs do not include that UI redesign.
 - The direct path optionally uses the streaming local-normal correction in
   [PenStabilizer.hpp](../src/PenStabilizer.hpp). It is adapted from PenTraceLab
   0.4.0, commit `ef6555a6defd12b8dde5afc408df4975eb4492b2`.
-- [PenTraceLab](https://github.com/alexiokay/pen-trace-lab) already has an internal
+- [PenTraceLab](https://github.com/PenTraceTools/pen-trace-lab) already has an internal
   `pentrace_core` CMake library target, including analysis and trace I/O. That is
   not yet an independently versioned stabilization package shared by both apps.
 - InfiniPaint currently contains its own streaming port. Tests compare live

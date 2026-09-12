@@ -19,6 +19,7 @@
 #pragma once
 #include "../PenStabilizer.hpp"
 #include "../BrushSampleWidths.hpp"
+#include "../BrushCurveRendering.hpp"
 #include "../CoordSpaceHelper.hpp"
 #include <include/core/SkPathBuilder.h>
 #include "../InputManager.hpp"
@@ -50,6 +51,7 @@ namespace BrushComponentCode {
         PenInput::Stabilizer stabilizer;
         float penDisplayScale = 1;
         bool penPath = false;
+        bool boundedCurves = false;
         BrushPressure::SampleWidths sampleWidths;
         uint32_t penId = 0;
         CoordSpaceHelper penCamera;
@@ -66,7 +68,7 @@ namespace BrushComponentCode {
     void clipper2_polygons_to_skpath_builder(SkPathBuilder& skPathBuilder, const Clipper2Lib::PathsD& clipperPath);
     std::optional<SkPath> skpath_simplify_only_lines(const SkPath& skPath);
 
-    SkPath brush_stroke_to_skpath(const std::vector<BrushPoint>& brushPoints, bool hasRoundCaps, bool faithfulPolyline = false);
+    SkPath brush_stroke_to_skpath(const std::vector<BrushPoint>& brushPoints, bool hasRoundCaps, bool faithfulPolyline = false, bool boundedCurves = false, float displayScale = 1);
     SkPath create_triangles(const std::vector<BrushPoint>& regularPoints, const std::vector<BrushPoint>& smoothedPoints, bool hasRoundCaps);
     std::vector<size_t> get_wedge_indices(const std::vector<BrushPoint>& points);
     std::vector<BrushPoint> smooth_points(const std::vector<BrushPoint>& points, size_t beginIndex, size_t endIndex, unsigned numOfDivisions);

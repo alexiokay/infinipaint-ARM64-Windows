@@ -114,7 +114,7 @@ std::optional<SkPath> skpath_simplify_only_lines(const SkPath& skPath) {
     return newPath.detach();
 }
 
-SkPath brush_stroke_to_skpath(const std::vector<BrushPoint>& brushPoints, bool hasRoundCaps, bool faithfulPolyline) {
+SkPath brush_stroke_to_skpath(const std::vector<BrushPoint>& brushPoints, bool hasRoundCaps, bool faithfulPolyline, bool boundedCurves, float displayScale) {
     if (brushPoints.empty()) return SkPath();
     if (faithfulPolyline) {
         // Remove only coincident vertices for valid outline normals, not detail
@@ -126,6 +126,13 @@ SkPath brush_stroke_to_skpath(const std::vector<BrushPoint>& brushPoints, bool h
             if (!points.empty() && (p.pos-points.back().pos).squaredNorm() == 0)
                 points.back().width = std::max(points.back().width, p.width);
             else points.push_back(p);
+        }
+        if (boundedCurves) {
+            std::vector<BrushRendering::Point> input;
+            for (const auto& p : points) input.push_back({p.pos.x(),p.pos.y(),p.width});
+            const auto curved=BrushRendering::boundedCurves(input,.25*displayScale);
+            points.clear();
+            for (const auto& p : curved) points.push_back({{static_cast<float>(p.x),static_cast<float>(p.y)},p.width});
         }
         return create_triangles(points, points, hasRoundCaps);
     }
@@ -387,6 +394,10 @@ void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
 
     float width = brushSize * genData.penWidth;
     genData.sampleWidths.reset(uniformPeakWidth, width, smoothSampleWidths, drawP.world.main.conf.tabletOptions.brushPressureSmoothingFactor);
+    const auto& brushConfig=drawP.world.main.toolConfig.brush;
+    genData.boundedCurves = useDirectPenPath && brushConfig.rendering == BrushPressure::Rendering::BoundedCurves;
+    if (useDirectPenPath && brushConfig.pressureResponse == BrushPressure::Response::Time)
+        genData.sampleWidths.resetTime(width,button.timestamp*1e-9,brushConfig.pressureTimeMs);
     genData.coords = strokeCoordSpace;
 
     genData.brushPoints.clear();
@@ -426,7 +437,7 @@ void mouse_motion(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
             timestamp * 1e-9, brushSize * genData.penWidth}, timestamp != 0)) return;
         const auto& positions = genData.stabilizer.positions();
         const auto& samples = genData.stabilizer.samples();
-        const bool widthsChanged = genData.sampleWidths.append(samples.back().width);
+        const bool widthsChanged = genData.sampleWidths.append(samples.back().width,samples.back().time,timestamp != 0);
         genData.brushPoints.resize(positions.size());
         // Peak width may revise every width, independently of frozen positions.
         const size_t changed = widthsChanged ? 0 : genData.stabilizer.changedBegin();

@@ -55,7 +55,7 @@ strokes. Stroke end does not append a pressureless hover sample.
 ## Source-level library
 
 The core now lives in the public
-[pen-stabilizer repository](https://github.com/alexiokay/pen-stabilizer), initially
+[pen-stabilizer repository](https://github.com/PenTraceTools/pen-stabilizer), initially
 package 0.1.0 / algorithm revision 1. Both InfiniPaint and PenTraceLab pin the
 same source revision via `deps/pen-stabilizer`. `src/PenStabilizer.hpp` is only
 an app adapter retaining existing setting clamps, not another algorithm copy.

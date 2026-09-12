@@ -18,7 +18,7 @@ int main() {
             Config c; c.pressureResponse=mode; c.hasRoundCaps=false; c.relativeWidth=37;
             const auto restored=json(c).get<Config>();
             require(restored.pressureResponse==mode && !restored.hasRoundCaps && restored.relativeWidth==37, "configuration roundtrip");
-            require(restored.samplePath()==(mode!=Response::Original), "engine mapping");
+            require(!restored.samplePath(), "explicit compatibility changed with pressure");
         }
         for (auto mode : {Response::Original,Response::Preserve,Response::Peak}) {
             Config c; c.pressureResponse=mode;
@@ -29,7 +29,9 @@ int main() {
             for(auto next : {Response::Original,Response::Preserve,Response::Peak}) {
                 c.pressureResponse=next;
                 c.migrateCorrection(correction);
-                require(correction && c.samplePath(correction),"pressure mode disabled correction");
+                require(correction,"pressure mode disabled correction");
+                c.engine=Engine::Samples;
+                require(c.samplePath(),"pressure mode disabled sample pipeline");
             }
             auto restored=json(c).get<Config>();
             require(restored.correctionIndependent,"migration marker lost");

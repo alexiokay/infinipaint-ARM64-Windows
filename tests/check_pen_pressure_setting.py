@@ -8,7 +8,7 @@ def source(path):
 class PressureSettingWiring(unittest.TestCase):
     def test_configuration_and_modes(self):
         config = source("src/BrushPressureConfig.hpp")
-        self.assertIn("pressureResponse = Response::Original", config)
+        self.assertIn("pressureResponse = Response::Time", config)
         self.assertIn('j.contains("preservePenPressure")', config)
         self.assertIn("using BrushToolConfig = BrushPressure::Config", source("src/DrawingProgram/ToolConfiguration.hpp"))
     def test_both_brush_panels_and_contact_down(self):
@@ -16,10 +16,10 @@ class PressureSettingWiring(unittest.TestCase):
         for panel in ("gui_toolbox", "gui_phone_toolbox"):
             body = brush.split(f"void BrushTool::{panel}(", 1)[1].split("\nvoid ", 1)[0]
             self.assertIn("gui_inspector();", body)
-        for label in ("Smoothed pressure (default)", "Preserve samples", "Uniform peak width", "Width propagation"):
+        for label in ("Original compatibility (default)", "Preserve samples", "Uniform peak width", "Width propagation", "Time-based width smoothing"):
             self.assertIn(f'"{label}"', brush)
         self.assertNotIn('"Preserve per-point pen pressure"', brush)
-        self.assertIn("toolConfig.brush.samplePath(drawP.world.main.conf.tabletOptions.penFilter.enabled), toolConfig.brush.pressureResponse == BrushPressure::Response::Peak", brush)
+        self.assertIn("toolConfig.brush.samplePath(), toolConfig.brush.pressureResponse == BrushPressure::Response::Peak", brush)
         motion = brush.split("void BrushTool::input_mouse_motion_callback", 1)[1].split("\nvoid ", 1)[0]
         self.assertNotIn("pressureResponse", motion)
         self.assertIn("motion.penContact && motion.penId == genData.penId", motion)
