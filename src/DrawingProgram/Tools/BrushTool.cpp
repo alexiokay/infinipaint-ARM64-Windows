@@ -17,6 +17,7 @@
  */
 
 #include "BrushTool.hpp"
+#include <SDL3/SDL_timer.h>
 #include <Helpers/ConvertVec.hpp>
 #include "../../GUIStuff/GUIManager.hpp"
 #include "../DrawingProgram.hpp"
@@ -70,8 +71,11 @@ void BrushTool::input_mouse_button_on_canvas_callback(const InputManager::MouseB
             objInfoBeingEdited = drawP.layerMan.add_component_to_layer_being_edited(newMeshContainer);
             commit_data(false);
         }
-        else if(!button.down && objInfoBeingEdited)
+        else if(!button.down && objInfoBeingEdited && button.deviceType == genData.deviceType &&
+            (!genData.penPath || button.penId == genData.penId)) {
+            BrushComponentCode::finish_pen(drawP, genData, button);
             commit_stroke();
+        }
     }
 }
 
@@ -79,7 +83,7 @@ void BrushTool::commit_data(bool final) {
     if(objInfoBeingEdited) {
         NetworkingObjects::NetObjOwnerPtr<CanvasComponentContainer>& containerPtr = objInfoBeingEdited->obj;
         MeshCanvasComponent& newMesh = static_cast<MeshCanvasComponent&>(containerPtr->get_comp());
-        newMesh.d.meshPath = BrushComponentCode::brush_stroke_to_skpath(genData.brushPoints, drawP.world.main.toolConfig.brush.hasRoundCaps);
+        newMesh.d.meshPath = BrushComponentCode::brush_stroke_to_skpath(genData.brushPoints, drawP.world.main.toolConfig.brush.hasRoundCaps, genData.penPath);
         if(final) {
             containerPtr->get_comp().simplify_paths();
             containerPtr->normalize_object_coordinates();
@@ -98,15 +102,18 @@ void BrushTool::commit_data(bool final) {
 }
 
 void BrushTool::input_mouse_motion_callback(const InputManager::MouseMotionCallbackArgs& motion) {
-    if(objInfoBeingEdited) {
+    if (objInfoBeingEdited && BrushComponentCode::pen_mapping_changed(drawP, genData)) commit_stroke();
+    if(objInfoBeingEdited && motion.deviceType == genData.deviceType &&
+        (!genData.penPath || (motion.penContact && motion.penId == genData.penId))) {
         auto& toolConfig = drawP.world.main.toolConfig;
         NetworkingObjects::NetObjOwnerPtr<CanvasComponentContainer>& containerPtr = objInfoBeingEdited->obj;
-        BrushComponentCode::mouse_motion(drawP, genData, motion.pos, toolConfig.get_relative_width_stroke_size(drawP, containerPtr->coords.inverseScale).first.value());
+        BrushComponentCode::mouse_motion(drawP, genData, motion.pos, toolConfig.get_relative_width_stroke_size(drawP, containerPtr->coords.inverseScale).first.value(), motion.timestamp);
         commitUpdate = true;
     }
 }
 
 void BrushTool::input_pen_axis_callback(const InputManager::PenAxisCallbackArgs& axis) {
+    if (genData.penPath) return; // Width travels with each contact motion sample.
     if(axis.axis == SDL_PEN_AXIS_PRESSURE && drawP.world.main.conf.tabletOptions.pressureAffectsBrushWidth) {
         genData.penWidth = axis.value;
         if(genData.penWidth != 0.0f && objInfoBeingEdited) {
@@ -120,6 +127,7 @@ void BrushTool::input_pen_axis_callback(const InputManager::PenAxisCallbackArgs&
 }
 
 void BrushTool::tool_update() {
+    if (objInfoBeingEdited && BrushComponentCode::pen_mapping_changed(drawP, genData)) commit_stroke();
     if(!drawP.world.main.g.gui.cursor_obstructed())
         drawP.world.main.input.hideCursor = true;
 
@@ -130,7 +138,7 @@ void BrushTool::tool_update() {
 void BrushTool::commit_stroke() {
     if(objInfoBeingEdited) {
         NetworkingObjects::NetObjOwnerPtr<CanvasComponentContainer>& containerPtr = objInfoBeingEdited->obj;
-        BrushComponentCode::fix_tip(genData.brushPoints);
+        if (!genData.penPath) BrushComponentCode::fix_tip(genData.brushPoints);
         commit_data(true);
         if(containerPtr->get_world_bounds().has_value())
             drawP.layerMan.add_undo_place_component(objInfoBeingEdited);

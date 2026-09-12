@@ -86,12 +86,15 @@ void EraserTool::input_mouse_button_on_canvas_callback(const InputManager::Mouse
                 return;
             }
 
-            BrushComponentCode::mouse_button(drawP, genData, drawP.world.drawData.cam.c, button, relativeWidthResult.first.value());
+            BrushComponentCode::mouse_button(drawP, genData, drawP.world.drawData.cam.c, button, relativeWidthResult.first.value(), false);
             // NOTE: Must set erase path when isErasing is set to true to make sure that the Circle path from not erasing part doesn't reach the erase_on_path code
             erasePath = BrushComponentCode::brush_stroke_to_skpath(genData.brushPoints, true);
             eraserChanged = isErasing = true;
         }
         else if(!button.down && isErasing) {
+            BrushComponentCode::finish_pen(drawP, genData, button);
+            erasePath = BrushComponentCode::brush_stroke_to_skpath(genData.brushPoints, true);
+            eraserChanged = true;
             // If not real time eraser, we can benefit from simplifying the path
             std::optional<SkPath> simplified = Simplify(erasePath);
             if(simplified.has_value())
@@ -106,9 +109,10 @@ void EraserTool::input_mouse_button_on_canvas_callback(const InputManager::Mouse
 }
 
 void EraserTool::input_mouse_motion_callback(const InputManager::MouseMotionCallbackArgs& motion) {
-    if(isErasing) {
+    if(isErasing && motion.deviceType == genData.deviceType &&
+        (motion.deviceType != InputManager::MouseDeviceType::PEN || motion.penContact)) {
         auto& toolConfig = drawP.world.main.toolConfig;
-        BrushComponentCode::mouse_motion(drawP, genData, motion.pos, toolConfig.get_relative_width_stroke_size(drawP, genData.coords.inverseScale).first.value());
+        BrushComponentCode::mouse_motion(drawP, genData, motion.pos, toolConfig.get_relative_width_stroke_size(drawP, genData.coords.inverseScale).first.value(), motion.timestamp);
         eraserChanged = true;
     }
 }

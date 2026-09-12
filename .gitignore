@@ -1,4 +1,7 @@
 .cache
+__pycache__/
+.build-venv/
+build-arm64/
 build
 CMakeUserPresets.json
 compile_commands.json

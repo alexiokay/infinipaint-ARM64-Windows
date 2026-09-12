@@ -17,6 +17,7 @@
  */
 
 #pragma once
+#include "PenStabilizer.hpp"
 #include <SDL3/SDL_time.h>
 #include <nlohmann/json.hpp>
 #include <Helpers/VersionNumber.hpp>
@@ -84,6 +85,7 @@ class GlobalConfig {
             bool disableTouchWhenPenInProximity = false;
             float brushMinimumSize = 0.0f;
             float brushPressureSmoothingFactor = 0.707f;
+            PenInput::Settings penFilter;
             bool zoomWhilePenDownAndButtonHeld = true;
         } tabletOptions;
 
