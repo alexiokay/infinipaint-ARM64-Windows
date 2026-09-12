@@ -16,10 +16,10 @@ class PressureSettingWiring(unittest.TestCase):
         for panel in ("gui_toolbox", "gui_phone_toolbox"):
             body = brush.split(f"void BrushTool::{panel}(", 1)[1].split("\nvoid ", 1)[0]
             self.assertIn("gui_inspector();", body)
-        for label in ("Original smoothing (default)", "Preserve samples", "Uniform peak width", "Width propagation"):
+        for label in ("Smoothed pressure (default)", "Preserve samples", "Uniform peak width", "Width propagation"):
             self.assertIn(f'"{label}"', brush)
         self.assertNotIn('"Preserve per-point pen pressure"', brush)
-        self.assertIn("toolConfig.brush.samplePath(), toolConfig.brush.pressureResponse == BrushPressure::Response::Peak", brush)
+        self.assertIn("toolConfig.brush.samplePath(drawP.world.main.conf.tabletOptions.penFilter.enabled), toolConfig.brush.pressureResponse == BrushPressure::Response::Peak", brush)
         motion = brush.split("void BrushTool::input_mouse_motion_callback", 1)[1].split("\nvoid ", 1)[0]
         self.assertNotIn("pressureResponse", motion)
         self.assertIn("motion.penContact && motion.penId == genData.penId", motion)
@@ -31,8 +31,8 @@ class PressureSettingWiring(unittest.TestCase):
         self.assertRegex(source("src/DrawingProgram/Tools/EraserTool.cpp"), r"mouse_button\([^;]*, false\);")
         core = source("src/CanvasComponents/BrushComponentCode.cpp")
         self.assertIn("genData.penPath = useDirectPenPath && button.deviceType == InputManager::MouseDeviceType::PEN;", core)
-        self.assertIn("const size_t changed = peakGrew ? 0 : genData.stabilizer.changedBegin();", core)
-        self.assertIn("genData.sampleWidths.output(samples[i].width)", core)
+        self.assertIn("const size_t changed = widthsChanged ? 0 : genData.stabilizer.changedBegin();", core)
+        self.assertIn("genData.sampleWidths.output(samples[i].width,i)", core)
         self.assertIn("smooth_out_points(genData.brushPoints, drawP.world.main.conf.tabletOptions.brushPressureSmoothingFactor);", core)
 if __name__ == "__main__":
     unittest.main()

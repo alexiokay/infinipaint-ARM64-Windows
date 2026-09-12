@@ -374,7 +374,7 @@ void fix_tip(std::vector<BrushPoint>& brushPoints) {
         brushPoints[brushPoints.size() - 2].width = brushPoints[brushPoints.size() - 1].width = std::max(brushPoints[brushPoints.size() - 1].width, brushPoints[brushPoints.size() - 2].width);
 }
 
-void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool useDirectPenPath, bool uniformPeakWidth) {
+void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool useDirectPenPath, bool uniformPeakWidth, bool smoothSampleWidths) {
     if(button.deviceType == InputManager::MouseDeviceType::PEN && drawP.world.main.conf.tabletOptions.pressureAffectsBrushWidth) {
         genData.penWidth = drawP.world.main.input.pen.pressure;
         if(genData.penWidth != 0.0f) {
@@ -386,7 +386,7 @@ void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
         genData.penWidth = 1.0f;
 
     float width = brushSize * genData.penWidth;
-    genData.sampleWidths.reset(uniformPeakWidth, width);
+    genData.sampleWidths.reset(uniformPeakWidth, width, smoothSampleWidths, drawP.world.main.conf.tabletOptions.brushPressureSmoothingFactor);
     genData.coords = strokeCoordSpace;
 
     genData.brushPoints.clear();
@@ -426,14 +426,14 @@ void mouse_motion(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
             timestamp * 1e-9, brushSize * genData.penWidth}, timestamp != 0)) return;
         const auto& positions = genData.stabilizer.positions();
         const auto& samples = genData.stabilizer.samples();
-        const bool peakGrew = genData.sampleWidths.append(samples.back().width);
+        const bool widthsChanged = genData.sampleWidths.append(samples.back().width);
         genData.brushPoints.resize(positions.size());
         // Peak width may revise every width, independently of frozen positions.
-        const size_t changed = peakGrew ? 0 : genData.stabilizer.changedBegin();
+        const size_t changed = widthsChanged ? 0 : genData.stabilizer.changedBegin();
         for (size_t i=changed; i<positions.size(); ++i) {
             const Vector2f screen{static_cast<float>(positions[i].x*genData.penDisplayScale),
                 static_cast<float>(positions[i].y*genData.penDisplayScale)};
-            genData.brushPoints[i] = {genData.coords.to_space(genData.penCamera.from_space(screen)), genData.sampleWidths.output(samples[i].width)};
+            genData.brushPoints[i] = {genData.coords.to_space(genData.penCamera.from_space(screen)), genData.sampleWidths.output(samples[i].width,i)};
         }
         return;
     }

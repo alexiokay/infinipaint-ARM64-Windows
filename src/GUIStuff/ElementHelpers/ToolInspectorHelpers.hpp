@@ -8,7 +8,7 @@ namespace GUIStuff::ElementHelpers {
 inline void tool_inspector(GUIManager& gui, std::string_view title, const std::function<void()>& content) {
     const float width = std::min(280.0f, std::max(80.0f, gui.io.windowSize.x() - 4.0f * gui.io.theme->padding1));
     CLAY_AUTO_ID({.layout = {
-        .sizing = {.width = CLAY_SIZING_FIXED(width), .height = CLAY_SIZING_FIT(0)},
+        .sizing = {.width = CLAY_SIZING_GROW(0, width), .height = CLAY_SIZING_FIT(0)},
         .childGap = gui.io.theme->childGap1,
         .layoutDirection = CLAY_TOP_TO_BOTTOM
     }}) {

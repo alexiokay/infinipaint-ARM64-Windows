@@ -379,6 +379,37 @@ void Toolbar::save_as_func() {
     #endif
 }
 
+void Toolbar::quick_colors() {
+    using namespace GUIStuff;
+    using namespace ElementHelpers;
+    auto& gui=main.g.gui;
+    if (!main.world) return;
+    auto* selected=main.world->drawProg.get_foreground_color_ptr();
+    if (!selected) return;
+    if (paletteData.selectedPalette<main.conf.palettes.size()) {
+        const auto& palette=main.conf.palettes[paletteData.selectedPalette].colors;
+        for (size_t i=0;i<std::min<size_t>(3,palette.size());++i) {
+            gui.new_id(static_cast<uint32_t>(i),[&,i] {
+                auto swatch=std::make_shared<Vector3f>(palette[i]);
+                color_button(gui,"quick swatch",swatch.get(),FixedSizeColorButtonOptions{
+                    .hasAlpha=false,.size=28,
+                    .onClick=[this,swatch] {
+                        if(auto* c=main.world->drawProg.get_foreground_color_ptr()) {
+                            c->x()=swatch->x(); c->y()=swatch->y(); c->z()=swatch->z();
+                            main.g.gui.set_to_layout();
+                        }
+                    }
+                });
+            });
+        }
+    }
+    text_button(gui,"quick palette","More",{
+        .onClickButton=[this](SelectableButton* b) {
+            if(b->get_bb()) main.world->drawProg.set_right_click_popup_location(b->get_bb()->center());
+        }
+    });
+}
+
 void Toolbar::paint_popup(Vector2f popupPos) {
     using namespace GUIStuff;
     auto& gui = main.g.gui;

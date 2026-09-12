@@ -1,5 +1,9 @@
 # Graphite UI and tool cursor
 
+Latest UI behavior: [compact movable inspector and control fixes](COMPACT_INSPECTOR.md).
+The inspector can now collapse, pin and move; the initial implementation below
+is retained as context. Pressure/correction independence is described in that update.
+
 This is a separate UI branch based on the pen integration; it does not change the
 three existing upstream pen PRs, graphics backend, ARM64 build scripts, pressure
 defaults, eraser hit testing, or stored drawing geometry.

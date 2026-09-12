@@ -21,6 +21,7 @@
 #include <Helpers/ConvertVec.hpp>
 #include <Helpers/Logger.hpp>
 #include "LayoutElement.hpp"
+#include "../../UIControlGeometry.hpp"
 
 namespace GUIStuff {
 
@@ -37,9 +38,13 @@ ScrollArea::ScrollArea(GUIManager& gui): Element(gui) {}
 void ScrollArea::layout(const Clay_ElementId& id, const Options& options) {
     opts = options;
     Clay_ScrollContainerData scrollData = Clay_GetScrollContainerData(id);
+    // Reserve space even before overflow is measured, avoiding width oscillation.
+    const auto gutterY = static_cast<uint16_t>(UIControlGeometry::scrollbarGutter(opts.scrollVertical && opts.scrollbarY != ScrollbarType::NONE, gui.io.isTouchDevice));
+    const auto gutterX = static_cast<uint16_t>(UIControlGeometry::scrollbarGutter(opts.scrollHorizontal && opts.scrollbarX != ScrollbarType::NONE, gui.io.isTouchDevice));
     CLAY(id, {
         .layout = {
             .sizing = {.width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0)},
+            .padding = {.left = 2, .right = static_cast<uint16_t>(gutterY+2), .top = 2, .bottom = static_cast<uint16_t>(gutterX+2)},
             .childAlignment = {.x = opts.xAlign, .y = opts.yAlign},
             .layoutDirection = opts.layoutDirection
         },

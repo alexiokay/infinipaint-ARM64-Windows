@@ -20,6 +20,30 @@ int main() {
             require(restored.pressureResponse==mode && !restored.hasRoundCaps && restored.relativeWidth==37, "configuration roundtrip");
             require(restored.samplePath()==(mode!=Response::Original), "engine mapping");
         }
+        for (auto mode : {Response::Original,Response::Preserve,Response::Peak}) {
+            Config c; c.pressureResponse=mode;
+            bool correction=true;
+            c.migrateCorrection(correction);
+            require(correction==(mode!=Response::Original),"old inactive filter migration");
+            correction=true;
+            for(auto next : {Response::Original,Response::Preserve,Response::Peak}) {
+                c.pressureResponse=next;
+                c.migrateCorrection(correction);
+                require(correction && c.samplePath(correction),"pressure mode disabled correction");
+            }
+            auto restored=json(c).get<Config>();
+            require(restored.correctionIndependent,"migration marker lost");
+        }
+        for(float factor : {0.0f,.707f,1.0f}) {
+            SampleWidths smooth;
+            smooth.reset(false,1,true,factor);
+            smooth.append(1); smooth.append(1); smooth.append(10); smooth.append(1);
+            require(smooth.output(10,3)==10,"peak lost in smoothed widths");
+            require(smooth.output(1,0)==(factor==1 ? 10 : factor==0 ? 1 : 10*factor*factor*factor),"backward width propagation");
+            require(smooth.output(1,4)==std::max(1.0f,10*factor),"forward width propagation");
+            smooth.reset(false,.25f,true,factor);
+            require(smooth.output(.25f,0)==.25f,"smoothed state leaked");
+        }
         for (bool enabled : {false,true}) for (bool peak : {false,true}) {
             PenInput::Stabilizer path; path.reset({enabled});
             SampleWidths widths; widths.reset(peak,1);

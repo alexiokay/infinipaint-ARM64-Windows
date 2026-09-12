@@ -106,6 +106,11 @@ class DrawingProgram {
 
         std::unique_ptr<DrawingProgramToolBase> drawTool;
     private:
+        bool toolPanelExpanded = false, toolPanelInitialized = false, toolPanelDragging = false;
+        InputManager::MouseDeviceType toolPanelDragDevice = InputManager::MouseDeviceType::MOUSE;
+        uint32_t toolPanelDragPen = 0;
+        SDL_FingerID toolPanelDragFinger = 0;
+        Vector2f toolPanelDragStart{0,0}, toolPanelStartPosition{0,0};
         void process_transform_message(const std::vector<std::pair<NetworkingObjects::NetObjID, CoordSpaceHelper>>& transforms);
 
         void drag_drop_update();

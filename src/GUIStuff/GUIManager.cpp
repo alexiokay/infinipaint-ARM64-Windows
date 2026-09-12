@@ -367,6 +367,31 @@ void GUIManager::draw_force(SkCanvas* canvas, bool skiaAA) {
             case CLAY_RENDER_COMMAND_TYPE_BORDER: {
                 Clay_BorderRenderData* config = &command->renderData.border;
 
+                // One closed, inset outline avoids corner seams and half-clipped
+                // strokes on uniform control borders. Keep asymmetric borders below.
+                const float uniformWidth = config->width.top;
+                if (uniformWidth == config->width.bottom && uniformWidth == config->width.left && uniformWidth == config->width.right) {
+                    if (uniformWidth > 0 && bb.width > uniformWidth && bb.height > uniformWidth) {
+                        const float half = uniformWidth*.5f;
+                        SkRect rect = SkRect::MakeXYWH(bb.x+half,bb.y+half,bb.width-uniformWidth,bb.height-uniformWidth);
+                        const auto radius = [half](float r) { return std::max(0.0f,r-half); };
+                        SkVector corners[4] = {
+                            {radius(config->cornerRadius.topLeft),radius(config->cornerRadius.topLeft)},
+                            {radius(config->cornerRadius.topRight),radius(config->cornerRadius.topRight)},
+                            {radius(config->cornerRadius.bottomRight),radius(config->cornerRadius.bottomRight)},
+                            {radius(config->cornerRadius.bottomLeft),radius(config->cornerRadius.bottomLeft)}
+                        };
+                        SkRRect outline; outline.setRectRadii(rect,corners);
+                        SkPaint outlinePaint;
+                        outlinePaint.setColor4f(convert_clay_color_to_skcolor4f(config->color));
+                        outlinePaint.setStyle(SkPaint::kStroke_Style);
+                        outlinePaint.setStrokeWidth(uniformWidth);
+                        outlinePaint.setAntiAlias(skiaAA);
+                        canvas->drawRRect(outline,outlinePaint);
+                    }
+                    break;
+                }
+
                 SkPaint p;
                 p.setColor4f(convert_clay_color_to_skcolor4f(config->color));
                 p.setStyle(SkPaint::kStroke_Style);

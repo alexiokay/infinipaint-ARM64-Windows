@@ -19,6 +19,7 @@
 #pragma once
 #include "../SharedTypes.hpp"
 #include "../BrushPressureConfig.hpp"
+#include "../ToolPanelPreferences.hpp"
 #include "nlohmann/json.hpp"
 #include "../GUIStuff/GUIManager.hpp"
 #include "../WorldScreenshot.hpp"
@@ -28,6 +29,8 @@ class ToolConfiguration {
     public:
         using BrushToolConfig = BrushPressure::Config;
         BrushToolConfig brush;
+
+        ToolPanelPreferences toolPanel;
 
         struct EraserToolConfig {
             float relativeWidth = 15.0f;
@@ -87,5 +90,5 @@ class ToolConfiguration {
         void print_relative_width_fail_message(RelativeWidthFailCode failCode);
         void relative_width_gui(DrawingProgram& drawP, const char* label);
 
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ToolConfiguration, brush, eraser, ellipseDraw, rectDraw, eyeDropper, lineDraw, screenshot, globalConf)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ToolConfiguration, brush, toolPanel, eraser, ellipseDraw, rectDraw, eyeDropper, lineDraw, screenshot, globalConf)
 };

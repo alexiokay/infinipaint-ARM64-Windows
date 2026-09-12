@@ -20,6 +20,7 @@
 #include "Element.hpp"
 #include "../GUIManager.hpp"
 #include "../../TimePoint.hpp"
+#include "../../UIControlGeometry.hpp"
 
 namespace GUIStuff {
 
@@ -82,14 +83,16 @@ template <typename T> class NumberSlider : public Element {
             float lerpTimeHeld = easeHeight(dd.holdAnimation / HOLD_ANIMATION_TIME);
 
             float holderRadius = lerp_vec(4.0, 5.0, lerpTimeHover);
-            float holderHeight = lerp_vec(4.0, 10.0, lerpTimeHeld);
+            float holderHeight = std::clamp<float>(lerp_vec(4.0, 10.0, lerpTimeHeld), 4.0f, std::max(4.0f, bb.height()*.5f-2.0f));
 
             const float yChange = bb.height() * 0.5f - holderRadius * 0.5f;
 
-            float holderPos = lerp_time<float>(dd.val, dd.maxData, dd.minData) * bb.width();
+            const float fraction = dd.maxData != dd.minData ? lerp_time<float>(dd.val, dd.maxData, dd.minData) : 0;
+            const float inset = UIControlGeometry::sliderInset(bb.width());
+            float holderPos = UIControlGeometry::sliderPosition(bb.width(), fraction);
 
-            SkRect barFull = SkRect::MakeXYWH(0.0f, yChange, holderPos, holderRadius);
-            SkRect barEmpty = SkRect::MakeXYWH(holderPos, yChange, bb.width() - holderPos, holderRadius);
+            SkRect barFull = SkRect::MakeXYWH(inset, yChange, std::max(0.0f,holderPos-inset), holderRadius);
+            SkRect barEmpty = SkRect::MakeXYWH(holderPos, yChange, std::max(0.0f,bb.width()-inset-holderPos), holderRadius);
 
             SkPaint barFullP;
             barFullP.setAntiAlias(skiaAA);
@@ -155,7 +158,7 @@ template <typename T> class NumberSlider : public Element {
     private:
         void update_slider_pos(const Vector2f& p, bool justHeld) {
             gui.set_post_callback_func([&, p, justHeld] {
-                float fracPosOnSlider = (p.x() - boundingBox.value().min.x()) / boundingBox.value().width();
+                float fracPosOnSlider = UIControlGeometry::sliderFraction(boundingBox.value().width(), p.x()-boundingBox.value().min.x());
                 dd.val = *data = static_cast<T>(std::clamp<double>(std::lerp<double>(dd.minData, dd.maxData, fracPosOnSlider), dd.minData, dd.maxData)); // Clamp as double then cast so that unsigned types dont wrap on clamp
                 if(justHeld && config.onHold) config.onHold();
                 if(config.onChange) config.onChange();

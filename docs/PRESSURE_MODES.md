@@ -1,5 +1,9 @@
 # Pressure modes and shared filter source
 
+Update: [compact inspector and independent correction](COMPACT_INSPECTOR.md)
+supersedes the initial UI/path restrictions below. Smoothed pressure now also
+supports correction; the notes below document the first three-mode integration.
+
 Implemented on `graphite-ui`, following the earlier
 [design proposal](PEN_UX_AND_LIBRARY_PROPOSAL.md). This is not yet a change to the
 three existing upstream pen PRs, nor a replacement of the creator's default path.
