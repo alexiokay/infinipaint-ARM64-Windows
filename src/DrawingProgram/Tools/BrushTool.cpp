@@ -31,6 +31,7 @@
 #include "../../CanvasComponents/CanvasComponentContainer.hpp"
 #include "../../GUIStuff/ElementHelpers/TextLabelHelpers.hpp"
 #include "../../GUIStuff/ElementHelpers/CheckBoxHelpers.hpp"
+#include "../../GUIStuff/ElementHelpers/RadioButtonHelpers.hpp"
 #include <include/pathops/SkPathOps.h>
 
 BrushTool::BrushTool(DrawingProgram& initDrawP):
@@ -69,7 +70,7 @@ void BrushTool::input_mouse_button_on_canvas_callback(const InputManager::MouseB
             newMeshContainer->coords = drawP.world.drawData.cam.c;
 
             // Capture the brush policy at contact-down; never switch a live stroke's path.
-            BrushComponentCode::mouse_button(drawP, genData, newMeshContainer->coords, button, relativeWidthResult.first.value(), toolConfig.brush.preservePenPressure);
+            BrushComponentCode::mouse_button(drawP, genData, newMeshContainer->coords, button, relativeWidthResult.first.value(), toolConfig.brush.samplePath(), toolConfig.brush.pressureResponse == BrushPressure::Response::Peak);
 
             objInfoBeingEdited = drawP.layerMan.add_component_to_layer_being_edited(newMeshContainer);
             commit_data(false);
@@ -173,9 +174,30 @@ void BrushTool::gui_inspector() {
             });
             inspector_section(gui, "STROKE", [&] {
                 checkbox_boolean_field(gui, "hasroundcaps", "Round Caps", &drawP.world.main.toolConfig.brush.hasRoundCaps);
-                checkbox_boolean_field(gui, "preserve pen pressure", "Preserve per-point pen pressure", &drawP.world.main.toolConfig.brush.preservePenPressure);
-                inspector_hint(gui, main.toolConfig.brush.preservePenPressure ?
-                    "Per-point pressure. Earlier widths stay unchanged." : "Original pressure smoothing (default).");
+            });
+            inspector_section(gui, "PRESSURE RESPONSE", [&] {
+                using Response = BrushPressure::Response;
+                radio_button_selector<Response>(gui, "pressure mode", &main.toolConfig.brush.pressureResponse, {
+                    {"Original smoothing (default)", Response::Original},
+                    {"Preserve samples", Response::Preserve},
+                    {"Uniform peak width", Response::Peak}
+                });
+                const auto mode = main.toolConfig.brush.pressureResponse;
+                inspector_hint(gui, mode == Response::Original ?
+                    "Creator's original path and pressure smoothing." :
+                    mode == Response::Preserve ? "Each sample keeps its width. No backward width changes." :
+                    "The whole stroke uses its highest recorded width.");
+                if (!main.conf.tabletOptions.pressureAffectsBrushWidth)
+                    inspector_hint(gui, "Pressure size is disabled: the selected size stays constant.");
+                inspector_hint(gui, "Applies to the next pen stroke. Existing drawings are unchanged.");
+            });
+            inspector_section(gui, "PATH CORRECTION", [&] {
+                if (main.toolConfig.brush.samplePath()) {
+                    checkbox_boolean_field(gui, "local correction", "Local wobble correction", &main.conf.tabletOptions.penFilter.enabled);
+                    inspector_hint(gui, "Experimental; independent of sample/peak width.");
+                } else {
+                    inspector_hint(gui, "Off on the Original path. Choose Preserve samples or Uniform peak width to use local correction.");
+                }
             });
             text_button(gui, "advanced", advancedSettingsOpen ? "Hide advanced settings" : "Advanced settings", {
                 .drawType = SelectableButton::DrawType::TRANSPARENT_BORDER,
@@ -186,18 +208,20 @@ void BrushTool::gui_inspector() {
                 inspector_section(gui, "PEN RESPONSE", [&] {
                     checkbox_boolean_field(gui, "pressure width", "Pressure affects size", &main.conf.tabletOptions.pressureAffectsBrushWidth);
                     inspector_hint(gui, "Shared pen setting; also affects the eraser.");
-                    if (main.toolConfig.brush.preservePenPressure) {
-                        checkbox_boolean_field(gui, "local correction", "Local wobble correction", &main.conf.tabletOptions.penFilter.enabled);
-                        if (main.conf.tabletOptions.penFilter.enabled) {
-                            slider_scalar_field(gui, "radius", "Radius (DIP)", &main.conf.tabletOptions.penFilter.radius, 4.0, 20.0, {.decimalPrecision = 1});
-                            slider_scalar_field(gui, "window", "Revision (seconds)", &main.conf.tabletOptions.penFilter.window, 0.040, 0.200, {.decimalPrecision = 3});
-                            slider_scalar_field(gui, "cap", "Max correction (DIP)", &main.conf.tabletOptions.penFilter.cap, 0.0, 6.0, {.decimalPrecision = 1});
-                            inspector_hint(gui, "Experimental. Larger windows can soften detail.");
-                        }
+                    if (main.conf.tabletOptions.pressureAffectsBrushWidth)
+                        slider_scalar_field(gui, "minimum width", "Minimum width", &main.conf.tabletOptions.brushMinimumSize, 0.0f, 1.0f, {.decimalPrecision = 3});
+                    if (!main.toolConfig.brush.samplePath()) {
+                        slider_scalar_field(gui, "width propagation", "Width propagation", &main.conf.tabletOptions.brushPressureSmoothingFactor, 0.0f, 1.0f, {.decimalPrecision = 3});
+                        inspector_hint(gui, "Higher spreads stronger widths backward. 1 spreads peak width; default is 0.707. Shared with the original eraser path.");
                     } else {
-                        inspector_hint(gui, "Enable per-point pressure to use local wobble correction.");
+                        inspector_hint(gui, "Original width propagation is not used by this pen mode.");
                     }
-                    inspector_hint(gui, "Set pen response before starting a stroke.");
+                    if (main.toolConfig.brush.samplePath() && main.conf.tabletOptions.penFilter.enabled) {
+                        slider_scalar_field(gui, "radius", "Radius (DIP)", &main.conf.tabletOptions.penFilter.radius, 4.0, 20.0, {.decimalPrecision = 1});
+                        slider_scalar_field(gui, "window", "Revision (seconds)", &main.conf.tabletOptions.penFilter.window, 0.040, 0.200, {.decimalPrecision = 3});
+                        slider_scalar_field(gui, "cap", "Max correction (DIP)", &main.conf.tabletOptions.penFilter.cap, 0.0, 6.0, {.decimalPrecision = 1});
+                        inspector_hint(gui, "Larger windows can soften detail. The recent path can revise.");
+                    }
                 });
             }
         });
@@ -225,7 +249,8 @@ void BrushTool::draw(SkCanvas* canvas, const DrawData& drawData) {
     const auto size = main.toolConfig.get_relative_width_stroke_size(drawP, drawData.cam.c.inverseScale);
     if (!size.first) return;
     float diameter = *size.first;
-    if (objInfoBeingEdited) diameter *= genData.penWidth;
+    if (objInfoBeingEdited) diameter = genData.penPath && !genData.brushPoints.empty() ?
+        genData.brushPoints.back().width : diameter * genData.penWidth;
     ToolCursor::draw(canvas, pos.x(), pos.y(), ToolCursor::radius(diameter),
         SDL_GetWindowDisplayScale(main.window.sdlWindow));
 }

@@ -1,5 +1,10 @@
 # Pen brush integration: local correction v1
 
+On `graphite-ui`, the checkbox described below has been superseded by the
+[three pressure modes and shared library](PRESSURE_MODES.md). The remaining
+checkbox description documents the earlier pen-integration branches. On the UI
+branch, both Preserve samples and Uniform peak width use the sample-based path.
+
 This fork now uses the PenTraceLab 0.4.0 local-normal filter, ported from
 `ef6555a6defd12b8dde5afc408df4975eb4492b2`. The old One Euro presets,
 prediction overlay, and pen-up raw-point append have been removed.

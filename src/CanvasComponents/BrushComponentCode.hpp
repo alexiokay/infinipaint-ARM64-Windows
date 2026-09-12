@@ -18,6 +18,7 @@
 
 #pragma once
 #include "../PenStabilizer.hpp"
+#include "../BrushSampleWidths.hpp"
 #include "../CoordSpaceHelper.hpp"
 #include <include/core/SkPathBuilder.h>
 #include "../InputManager.hpp"
@@ -49,6 +50,7 @@ namespace BrushComponentCode {
         PenInput::Stabilizer stabilizer;
         float penDisplayScale = 1;
         bool penPath = false;
+        BrushPressure::SampleWidths sampleWidths;
         uint32_t penId = 0;
         CoordSpaceHelper penCamera;
         Vector2f penScreenOffset = {0, 0};
@@ -70,7 +72,7 @@ namespace BrushComponentCode {
     std::vector<BrushPoint> smooth_points(const std::vector<BrushPoint>& points, size_t beginIndex, size_t endIndex, unsigned numOfDivisions);
     void smooth_out_points(std::vector<BrushPoint>& brushPoints, float smoothFactor);
     void fix_tip(std::vector<BrushPoint>& brushPoints);
-    void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool useDirectPenPath = false);
+    void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool useDirectPenPath = false, bool uniformPeakWidth = false);
     void mouse_motion(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const Vector2f& motionPos, float brushSize, uint64_t timestamp = 0);
     void finish_pen(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const InputManager::MouseButtonCallbackArgs& button);
     bool pen_mapping_changed(DrawingProgram& drawP, const BrushStrokeGenerationData& genData);

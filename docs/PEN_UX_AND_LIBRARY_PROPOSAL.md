@@ -1,6 +1,10 @@
 # Pen pressure UX and reusable stabilization core
 
-Status: **design proposal, not implemented functionality**. Recorded 2026-09-13.
+Status: **historical design proposal**. Recorded 2026-09-13.
+The subsequent [pressure modes and library integration](PRESSURE_MODES.md)
+implement the selector, explicit peak policy and source extraction on `graphite-ui`.
+Read that status document for current behavior; the original proposal below
+records the starting point and includes longer-term ideas not yet implemented.
 This document does not change defaults, create a package, or propose an immediate
 Rust rewrite. Implementation notes are in [PEN_INPUT.md](PEN_INPUT.md) and
 [GRAPHITE_UI.md](GRAPHITE_UI.md). Graphite UI work is on the separate `graphite-ui`

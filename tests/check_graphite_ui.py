@@ -51,7 +51,7 @@ class GraphiteUI(unittest.TestCase):
                 self.assertIn("gui_inspector();", body)
         brush = source("src/DrawingProgram/Tools/BrushTool.cpp")
         self.assertIn("if (advancedSettingsOpen)", brush)
-        self.assertIn("if (main.toolConfig.brush.preservePenPressure)", brush)
+        self.assertIn("if (main.toolConfig.brush.samplePath())", brush)
         eraser = source("src/DrawingProgram/Tools/EraserTool.cpp")
         self.assertIn('"Whole objects", false, "Portions", true', eraser)
 

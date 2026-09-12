@@ -4,9 +4,9 @@ This is a separate UI branch based on the pen integration; it does not change th
 three existing upstream pen PRs, graphics backend, ARM64 build scripts, pressure
 defaults, eraser hit testing, or stored drawing geometry.
 
-Future pressure-mode controls and source-level library extraction are documented
-in the [pen UX and reusable-core proposal](PEN_UX_AND_LIBRARY_PROPOSAL.md).
-They are proposals, not additional features implemented by this UI branch.
+Pressure-mode controls and source-level library extraction now follow the
+[implemented pressure modes](PRESSURE_MODES.md). The earlier
+[design proposal](PEN_UX_AND_LIBRARY_PROPOSAL.md) is retained as historical context.
 
 ## Appearance and controls
 
@@ -23,8 +23,9 @@ and radio labels are clickable. Toggle glyphs stay stable instead of morphing on
 hover. The two tool inspectors share their desktop/phone implementation.
 
 Brush: size first, then stroke options, with advanced pen response tucked away.
-Preserve per-point pen pressure remains off by default. Wobble correction still
-requires it and cannot silently override original smoothing.
+Original smoothing remains the default. A three-mode selector replaces the
+preservation checkbox: Original / Preserve samples / Uniform peak width. Local
+correction supports either sample-based mode and cannot override Original.
 
 Eraser: size, Current layer / All visible, and Whole objects / Portions. Portions
 cuts mesh strokes, while fully enclosed objects can still be removed by existing

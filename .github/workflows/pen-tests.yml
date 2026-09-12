@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: git submodule update --init deps/pen-stabilizer
       - uses: actions/checkout@v4
         with:
           repository: alexiokay/pen-trace-lab
@@ -30,6 +31,7 @@ jobs:
         arch: [x64, ARM64]
     steps:
       - uses: actions/checkout@v4
+      - run: git submodule update --init deps/pen-stabilizer
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

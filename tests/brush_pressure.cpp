@@ -1,0 +1,49 @@
+#include "../src/BrushPressureConfig.hpp"
+#include "../src/BrushSampleWidths.hpp"
+#include "../src/PenStabilizer.hpp"
+#include <iostream>
+#include <stdexcept>
+
+void require(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
+int main() {
+    try {
+        using namespace BrushPressure;
+        using nlohmann::json;
+        require(json::object().get<Config>().pressureResponse == Response::Original, "old default");
+        require(json{{"preservePenPressure",true}}.get<Config>().pressureResponse == Response::Preserve, "old opt-in migration");
+        require(json{{"preservePenPressure",false}}.get<Config>().pressureResponse == Response::Original, "old off migration");
+        require(json{{"pressureResponse","future"},{"preservePenPressure",true}}.get<Config>().pressureResponse == Response::Original, "unknown mode fallback");
+        require(json{{"pressureResponse",42}}.get<Config>().pressureResponse == Response::Original, "invalid mode fallback");
+        for (auto mode : {Response::Original,Response::Preserve,Response::Peak}) {
+            Config c; c.pressureResponse=mode; c.hasRoundCaps=false; c.relativeWidth=37;
+            const auto restored=json(c).get<Config>();
+            require(restored.pressureResponse==mode && !restored.hasRoundCaps && restored.relativeWidth==37, "configuration roundtrip");
+            require(restored.samplePath()==(mode!=Response::Original), "engine mapping");
+        }
+        for (bool enabled : {false,true}) for (bool peak : {false,true}) {
+            PenInput::Stabilizer path; path.reset({enabled});
+            SampleWidths widths; widths.reset(peak,1);
+            std::vector<float> rendered;
+            for (unsigned i=0;i<120;++i) {
+                // Includes stationary pressure and a peak after a frozen prefix.
+                const float w=i==70 ? 10.0f : 1.0f;
+                require(path.append({{i<75 ? double(i) : 74.0, double(i%3)},i*.01,w}),"append");
+                const bool grew=widths.append(w);
+                const auto start=grew ? 0 : path.changedBegin();
+                rendered.resize(path.samples().size());
+                for (auto k=start;k<rendered.size();++k) rendered[k]=widths.output(path.samples()[k].width);
+                for (unsigned k=0;k<=i;++k) {
+                    const float expected=peak ? (i>=70 ? 10.0f : 1.0f) : (k==70 ? 10.0f : 1.0f);
+                    require(rendered[k]==expected,"per-point/peak width semantics");
+                    require(path.samples()[k].width==(k==70 ? 10.0f : 1.0f),"source widths changed");
+                }
+            }
+            const auto before=rendered;
+            path.finish();
+            require(rendered==before,"finish changed widths");
+            widths.reset(peak,.25f);
+            require(widths.output(.25f)==.25f,"peak leaked between strokes");
+        }
+        std::cout << "Pressure migration and independent width policies passed\n";
+    } catch(const std::exception& e) { std::cerr<<e.what()<<'\n'; return 1; }
+}
