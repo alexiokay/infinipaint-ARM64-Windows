@@ -557,7 +557,11 @@ void InputManager::backend_pen_button_up_update(const SDL_PenButtonEvent& e) {
 }
 
 void InputManager::backend_pen_touch_down_update(const SDL_PenTouchEvent& e) {
-    if (pen.isDown) end_pen_contact(e.timestamp);
+    if (pen.isDown) {
+        const float pressure = pen.pressure;
+        end_pen_contact(e.timestamp);
+        pen.pressure = pressure;
+    }
     pen.activeId = e.which;
     Vector2f mouseNewPos = backend_cursor_pos_calculation({e.x, e.y});
     mouse.set_pos(mouseNewPos);

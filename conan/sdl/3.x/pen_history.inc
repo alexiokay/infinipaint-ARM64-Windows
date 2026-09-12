@@ -64,7 +64,12 @@
             state->ticks_origin = now;
         }
         POINT origin = {0, 0};
-        ClientToScreen(data->hwnd, &origin);
+        if (!ClientToScreen(data->hwnd, &origin)) {
+            SDL_SendPenTouch(now, pen, window, false, false);
+            SDL_free(history);
+            returnCode = 0;
+            break;
+        }
         RECT device, display;
         const bool mapped = data->videodata->GetPointerDeviceRects &&
             data->videodata->GetPointerDeviceRects(latest.pointerInfo.sourceDevice, &device, &display) &&

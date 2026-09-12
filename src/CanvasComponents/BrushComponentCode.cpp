@@ -18,7 +18,7 @@
 
 #include "BrushComponentCode.hpp"
 #include <algorithm>
-#include <SDL3/SDL_timer.h>
+#include <SDL3/SDL_video.h>
 #include <Helpers/ConvertVec.hpp>
 #include <Helpers/MathExtras.hpp>
 #include <clipper2/clipper.h>
@@ -483,7 +483,7 @@ void mouse_motion(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
 
 bool pen_mapping_changed(DrawingProgram& drawP, const BrushStrokeGenerationData& genData) {
     if (!genData.penPath) return false;
-    Vector2i position;
+    Vector2i position = genData.penWindowPosition;
     SDL_GetWindowPosition(drawP.world.main.window.sdlWindow, &position.x(), &position.y());
     return genData.penCamera != drawP.world.drawData.cam.c ||
         (genData.penScreenOffset-drawP.world.main.input.screenOffset).squaredNorm() != 0 ||

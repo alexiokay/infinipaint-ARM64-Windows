@@ -17,7 +17,6 @@
  */
 
 #include "BrushTool.hpp"
-#include <SDL3/SDL_timer.h>
 #include <Helpers/ConvertVec.hpp>
 #include "../../GUIStuff/GUIManager.hpp"
 #include "../DrawingProgram.hpp"
