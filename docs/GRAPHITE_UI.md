@@ -4,6 +4,10 @@ This is a separate UI branch based on the pen integration; it does not change th
 three existing upstream pen PRs, graphics backend, ARM64 build scripts, pressure
 defaults, eraser hit testing, or stored drawing geometry.
 
+Future pressure-mode controls and source-level library extraction are documented
+in the [pen UX and reusable-core proposal](PEN_UX_AND_LIBRARY_PROPOSAL.md).
+They are proposals, not additional features implemented by this UI branch.
+
 ## Appearance and controls
 
 The built-in `Default` interface theme is now Graphite: neutral dark surfaces,

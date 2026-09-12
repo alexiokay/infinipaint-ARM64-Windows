@@ -44,6 +44,13 @@ smoothing remains the default. Enabling it selects our direct per-sample pen
 path on the next stroke. The choice is saved with the brush settings and does
 not alter existing drawings or switch the path of a stroke already in progress.
 
+The original **Brush pressure smoothing factor** is bypassed on the preserving
+path; it does not need to be `1.0` for preservation to work. On the original path,
+the default `0.707` can retain width variation, while `1.0` propagates peak width
+through the width sequence. See the [pressure UX and reusable-core proposal](PEN_UX_AND_LIBRARY_PROPOSAL.md)
+for the mathematical example, current path dependency, and proposed clearer
+controls. Those proposals do not change this build's behavior.
+
 Tablet settings separately show **Pen brush: local wobble correction
 (experimental)**. Its stored/default setting is unchanged, but correction only
 runs when the Brush preservation option is enabled; the UI explains when it is
