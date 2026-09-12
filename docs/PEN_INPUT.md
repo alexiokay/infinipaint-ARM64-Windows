@@ -15,9 +15,10 @@ From the repository root in the appropriate Visual Studio build environment:
 
 ```bat
 git submodule update --init --recursive
-call windowsinstall\conan_init_arm64.bat
-call windowsinstall\build_portable_arm64.bat
-call windowsinstall\package_portable_arm64.bat
+set "PEN_BUILD_REPO=%CD%"
+call "%PEN_BUILD_REPO%\windowsinstall\conan_init_arm64.bat"
+call "%PEN_BUILD_REPO%\windowsinstall\build_portable_arm64.bat"
+call "%PEN_BUILD_REPO%\windowsinstall\package_portable_arm64.bat"
 ```
 
 The upstream portable packager uses `windowsinstall/dlls-arm64` for runtime DLLs;
@@ -26,6 +27,8 @@ supply the DLLs required by your build there. It recreates its
 in that staging folder. The executable is built under
 `build-arm64/build/Release`; the portable ZIP is under `windowsinstall`.
 You can instead run upstream's full build/package script if also making an installer.
+The absolute paths above matter: upstream's scripts change the working directory.
+Check that each step succeeds before continuing to the next.
 
 IMPORTANT: `conan_init_arm64.bat` exports the updated SDL recipe. Rebuilding just
 InfiniPaint against a cached OLD SDL library does not install the input fix.
