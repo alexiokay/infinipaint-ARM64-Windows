@@ -619,21 +619,9 @@ void Toolbar::top_toolbar() {
 
 void Toolbar::web_version_welcome() {
     auto& gui = main.g.gui;
-    auto& io = gui.io;
 
-    CLAY_AUTO_ID({
-        .layout = {
-            .sizing = {.width = CLAY_SIZING_FIXED(700), .height = CLAY_SIZING_FIT(0) },
-            .padding = CLAY_PADDING_ALL(io.theme->padding1),
-            .childGap = io.theme->childGap1,
-            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_TOP},
-            .layoutDirection = CLAY_TOP_TO_BOTTOM
-        },
-        .backgroundColor = convert_vec4<Clay_Color>(io.theme->backColor1),
-        .cornerRadius = CLAY_CORNER_RADIUS(io.theme->windowCorners1),
-        .floating = {.attachPoints = {.element = CLAY_ATTACH_POINT_CENTER_CENTER, .parent = CLAY_ATTACH_POINT_CENTER_CENTER}, .attachTo = CLAY_ATTACH_TO_PARENT}
-    }) {
-        gui.new_id("web version welcome gui", [&] {
+    center_obstructing_window_gui("web version welcome gui", CLAY_SIZING_FIXED(700), CLAY_SIZING_FIT(0), [&] {
+        gui.new_id("web version welcome notif", [&] {
             text_label_centered(gui, "Welcome to the web version of InfiniPaint!");
             text_label(gui, 
 R"(This version contains more known issues than the native version of the app. This includes:
@@ -651,7 +639,7 @@ If you like this app, consider downloading the native version for your system)")
                 }
             });
         });
-    }
+    });
 }
 
 void Toolbar::center_message(const char* id, const std::string& m) {
@@ -1528,6 +1516,7 @@ void Toolbar::general_settings_inner_gui() {
                         input_scalar_field(gui, "jump transition time", "Jump transition time", &main.conf.jumpTransitionTime, 0.01f, 1000.0f, {.decimalPrecision = 2});
 
                         checkbox_boolean_field(gui, "real time eraser", "Eraser works in real time", &main.conf.realTimeEraser);
+                        checkbox_boolean_field(gui, "disable touch for drawing", "Disable touch for drawing", &main.conf.disableTouchForDrawing);
                         checkbox_boolean_field(gui, "force extension on path", "Force extension on path when saving files", &main.conf.forceExtensionOnPath);
                         #ifdef ADD_PREFER_X11_OPTION
                             checkbox_boolean_field(gui, "prefer x11", "Prefer X11 over Wayland (Requires restart)", &main.conf.preferX11);

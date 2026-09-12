@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.27.0)
-set(CMAKE_CXX_STANDARD 23)
 project(infinipaint)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -189,12 +190,18 @@ if(WIN32)
         "windowsinstall/app.rc")
 endif()
 
+if(ANDROID)
+    add_library(main SHARED ${sources})
+else()
+    add_executable(main ${sources})
+endif()
+
 # Get libraries
-find_package(ICU 77.1 REQUIRED COMPONENTS uc)
 
 if(NO_CONAN_BUILD)
     set(SKIA_INCLUDE "modules/skia" CACHE PATH "Path to Skia root directory")
     set(SKIA_LIB_PATH "modules/skia/out/Static" CACHE PATH "Path to Skia libs")
+
     find_library(SKIA_LIB skia PATHS ${SKIA_LIB_PATH})
     find_library(SKIA_SVG_LIB svg PATHS ${SKIA_LIB_PATH})
     find_library(SKIA_RESOURCES_LIB skresources PATHS ${SKIA_LIB_PATH})
@@ -213,6 +220,8 @@ else()
     find_package(clipper2 REQUIRED)
 endif()
 
+find_package(ICU 77.1 REQUIRED COMPONENTS uc)
+
 if(NOT EMSCRIPTEN)
     if((NOT ANDROID) AND (NOT LINUX))
         find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
@@ -224,11 +233,11 @@ else()
     find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-static)
 endif()
 
-if((NOT EMSCRIPTEN) AND (NOT APPLE))
+if((NOT EMSCRIPTEN) AND (NOT APPLE) AND (NOT ANDROID))
     find_package(TBB REQUIRED)
 endif()
 
-if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX AND (NOT NO_CONAN_BUILD))
+if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX AND (NOT NO_CONAN_BUILD) AND (NOT ANDROID))
     find_package(egl)
 endif()
 
@@ -236,12 +245,6 @@ find_package(zstd REQUIRED)
 
 message("Skia root: " ${SKIA_INCLUDE})
 message("Build type: " ${CMAKE_BUILD_TYPE})
-
-if(ANDROID)
-    add_library(main SHARED ${sources})
-else()
-    add_executable(main ${sources})
-endif()
 
 if(NOT ANDROID)
     set_target_properties(main PROPERTIES OUTPUT_NAME "infinipaint")
@@ -257,8 +260,8 @@ elseif(APPLE)
             BUNDLE True
             MACOSX_BUNDLE_GUI_IDENTIFIER com.infinipaint.infinipaint
             MACOSX_BUNDLE_BUNDLE_NAME infinipaint
-            MACOSX_BUNDLE_BUNDLE_VERSION "0.6.0"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.6.0"
+            MACOSX_BUNDLE_BUNDLE_VERSION "0.6.1"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.6.1"
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/macosinstall/Info.plist
         )
         add_custom_command(TARGET main POST_BUILD
@@ -349,7 +352,7 @@ else()
     message("Place config in global config folder")
 endif()
 
-if(NOT EMSCRIPTEN AND ((GRAPHICS_BACKEND STREQUAL "OpenGL3.3") OR (GRAPHICS_BACKEND STREQUAL "OpenGLES3.0") OR (GRAPHICS_BACKEND STREQUAL "OpenGL2.1")))
+if(NOT EMSCRIPTEN AND ((GRAPHICS_BACKEND STREQUAL "OpenGL3.3") OR (GRAPHICS_BACKEND STREQUAL "OpenGLES3.0") OR (GRAPHICS_BACKEND STREQUAL "OpenGL2.1")) AND (NOT ANDROID))
     find_package(OpenGL REQUIRED)
     if(GRAPHICS_BACKEND STREQUAL "OpenGLES3.0")
         target_link_libraries(main OpenGL::GLES3)
@@ -399,9 +402,11 @@ elseif(LINUX)
     set(SDL_TESTS OFF CACHE BOOL "Compile SDL tests")
     set(SDL_INSTALL_DOCS OFF CACHE BOOL "Install docs")
     set(SDL_INSTALL_TESTS OFF CACHE BOOL "Install tests")
-    set(SDL_WAYLAND ON CACHE BOOL "Compile SDL for Wayland")
+    set(SDL_WAYLAND OFF CACHE BOOL "Compile SDL for Wayland")
     set(SDL_X11 ON CACHE BOOL "Compile SDL for X11")
     set(SDL_AUDIO OFF CACHE BOOL "Compile SDL Audio")
+    set(SDL_STATIC ON CACHE BOOL "Compile SDL statically")
+    set(SDL_SHARED OFF CACHE BOOL "Compile SDL dynamically")
     add_subdirectory(deps/SDL EXCLUDE_FROM_ALL)
 endif()
 
@@ -423,30 +428,25 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(main harfbuzz::harfbuzz)
 endif()
 
-if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX)
+if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX AND (NOT ANDROID))
     target_link_libraries(main OpenGL::EGL)
 endif()
 
-if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX AND (NOT NO_CONAN_BUILD))
+if((NOT (GRAPHICS_BACKEND STREQUAL "Vulkan")) AND (NOT EMSCRIPTEN) AND LINUX AND (NOT NO_CONAN_BUILD) AND (NOT ANDROID))
     target_link_libraries(main egl::egl)
 endif()
 
 if(ANDROID)
+    if(GRAPHICS_BACKEND STREQUAL "OpenGLES3.0")
+        target_link_libraries(main GLESv3)
+    else()
+        message(FATAL_ERROR "Invalid graphics backend for Android. Only OpenGLES3.0 works for now")
+    endif()
     target_link_libraries(main EGL)
 endif()
 
 if(GRAPHICS_BACKEND STREQUAL "Vulkan")
     target_compile_definitions(main PRIVATE USE_BACKEND_VULKAN SK_VULKAN)
-    # Skia bundles the Vulkan headers in its package; expose them so the Vulkan
-    # backend sources compile on Windows+Conan (Linux/macOS get them via the
-    # system Vulkan SDK). Iterate all build types so this is config-agnostic.
-    foreach(_cfg RELEASE DEBUG RELWITHDEBINFO MINSIZEREL)
-        foreach(_inc ${skia-infinipaint_INCLUDE_DIRS_${_cfg}})
-            if(EXISTS "${_inc}/third_party/externals/vulkan-headers/include/vulkan/vulkan_core.h")
-                target_include_directories(main PRIVATE "${_inc}/third_party/externals/vulkan-headers/include")
-            endif()
-        endforeach()
-    endforeach()
     if(USE_GRAPHITE)
         target_compile_definitions(main PRIVATE SK_GRAPHITE USE_SKIA_BACKEND_GRAPHITE)
         message("Using Vulkan Graphite Backend")
@@ -483,7 +483,7 @@ if(APPLE OR WIN32)
     set(CPACK_PACKAGE_NAME "infinipaint")
     set(CPACK_PACKAGE_VERSION_MAJOR "0")
     set(CPACK_PACKAGE_VERSION_MINOR "6")
-    set(CPACK_PACKAGE_VERSION_PATCH "0")
+    set(CPACK_PACKAGE_VERSION_PATCH "1")
     set(CPACK_PACKAGE_VENDOR "ErrorAtLine0")
     set(CPACK_PACKAGE_CONTACT "erroratline0@gmail.com")
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/COPYING")

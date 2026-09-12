@@ -4,6 +4,3 @@ CMakeUserPresets.json
 compile_commands.json
 bscript
 .directory
-# local ARM64 build logs
-cmake_build_arm64.log
-conan_install_arm64.log

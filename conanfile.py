@@ -30,25 +30,44 @@ class CompressorRecipe(ConanFile):
                 "canvaskit_enable_sksl_trace": False,
                 "canvaskit_enable_webgpu": False,
                 "canvaskit_enable_webgl": False,
-                "use_system_libwebp": False, # There's a problem compiling libwebp with emscripten in conan
+                "use_system_libwebp": False,  # There's a problem compiling libwebp with emscripten in conan
                 "use_conan_libwebp": False
             })
         elif self.settings.os == "Windows":
-            self.requires("skia-infinipaint/143.20251028.0", options = {
-                "use_system_expat": False,
-                "use_freetype": False,
-                "use_system_harfbuzz": True,
-                "use_conan_harfbuzz": True,
-                "use_system_icu": True,
-                "use_conan_icu": True,
-                "use_system_libjpeg_turbo": False,
-                "use_system_libpng": False,
-                "use_system_libwebp": False,
-                "use_system_zlib": False,
-                "enable_svg": True,
-                "enable_skottie": False,
-                "enable_bentleyottmann": True # for some reason, setting this to False results in an error when creating the project
-            })
+            if self.settings.arch == "armv8":
+                self.requires("skia-infinipaint/143.20251028.0", options = {
+                    "use_system_expat": False,
+                    "use_freetype": False,
+                    "use_system_harfbuzz": True,
+                    "use_conan_harfbuzz": True,
+                    "use_system_icu": True,
+                    "use_conan_icu": True,
+                    "use_system_libjpeg_turbo": False,
+                    "use_system_libpng": False,
+                    "use_system_libwebp": False,
+                    "use_system_zlib": False,
+                    "enable_svg": True,
+                    "enable_skottie": False,
+                    "enable_bentleyottmann": True,  # for some reason, setting this to False results in an error when creating the project
+                    "use_vulkan": True
+                })
+            else:
+                self.requires("skia-infinipaint/143.20251028.0", options = {
+                    "use_system_expat": False,
+                    "use_freetype": False,
+                    "use_system_harfbuzz": True,
+                    "use_conan_harfbuzz": True,
+                    "use_system_icu": True,
+                    "use_conan_icu": True,
+                    "use_system_libjpeg_turbo": False,
+                    "use_system_libpng": False,
+                    "use_system_libwebp": False,
+                    "use_system_zlib": False,
+                    "enable_svg": True,
+                    "enable_skottie": False,
+                    "enable_bentleyottmann": True, # for some reason, setting this to False results in an error when creating the project
+                    "use_vulkan": False
+                })
         elif self.settings.os == "Macos":
             self.requires("skia-infinipaint/143.20251028.0", options = {
                 "use_system_expat": False,
@@ -65,7 +84,7 @@ class CompressorRecipe(ConanFile):
                 "use_egl": False,
                 "enable_svg": True,
                 "enable_skottie": False,
-                "enable_bentleyottmann": True # for some reason, setting this to False results in an error when creating the project
+                "enable_bentleyottmann": True  # for some reason, setting this to False results in an error when creating the project
             })
         else:
             self.requires("skia-infinipaint/143.20251028.0", options = {
@@ -85,30 +104,29 @@ class CompressorRecipe(ConanFile):
                 "use_egl": True,
                 "enable_svg": True,
                 "enable_skottie": False,
-                "enable_bentleyottmann": True # for some reason, setting this to False results in an error when creating the project
+                "enable_bentleyottmann": True  # for some reason, setting this to False results in an error when creating the project
             })
 
-        
         if self.settings.os == "Linux":
             self.requires("fontconfig/2.17.1")
             self.requires("egl/system")
         elif self.settings.os == "Emscripten":
-            self.requires("sdl-infinipaint/3.4.8", options = {
+            self.requires("sdl-infinipaint/3.4.16", options = {
                 "emscriptenPersistentPath": "/infinipaint"
             })
         elif self.settings.os != "Android":
-            self.requires("sdl-infinipaint/3.4.8")
+            self.requires("sdl-infinipaint/3.4.16")
 
         if self.settings.os != "Emscripten" and self.settings.os != "Macos" and self.settings.os != "Android":
             self.requires("hwloc/2.12.2", options = {
                 "shared": True
             })
-            self.requires("onetbb/2022.0.0")
+            self.requires("onetbb/2023.1.0")
 
         if self.settings.os != "Emscripten":
             self.requires("libdatachannel/0.24.0")
             self.requires("libcurl/8.20.0")
-            
+
         self.requires("clipper2/2.0.1")
         self.requires("zstd/1.5.7")
         self.requires("icu-infinipaint/77.1")
