@@ -374,12 +374,12 @@ void fix_tip(std::vector<BrushPoint>& brushPoints) {
         brushPoints[brushPoints.size() - 2].width = brushPoints[brushPoints.size() - 1].width = std::max(brushPoints[brushPoints.size() - 1].width, brushPoints[brushPoints.size() - 2].width);
 }
 
-void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool allowPenFilter) {
+void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, const CoordSpaceHelper& strokeCoordSpace, const InputManager::MouseButtonCallbackArgs& button, float brushSize, bool useDirectPenPath) {
     if(button.deviceType == InputManager::MouseDeviceType::PEN && drawP.world.main.conf.tabletOptions.pressureAffectsBrushWidth) {
         genData.penWidth = drawP.world.main.input.pen.pressure;
         if(genData.penWidth != 0.0f) {
-            float brushMinSize = drawP.world.main.conf.tabletOptions.brushMinimumSize;
-            genData.penWidth = brushMinSize + genData.penWidth * (1.0f - brushMinSize);
+            const float minimum = drawP.world.main.conf.tabletOptions.brushMinimumSize;
+            genData.penWidth = minimum + genData.penWidth * (1.0f - minimum);
         }
     }
     else
@@ -394,7 +394,7 @@ void mouse_button(DrawingProgram& drawP, BrushStrokeGenerationData& genData, con
     p.width = width;
     genData.prevPointUnaltered = p.pos;
     genData.deviceType = button.deviceType;
-    genData.penPath = allowPenFilter && button.deviceType == InputManager::MouseDeviceType::PEN;
+    genData.penPath = useDirectPenPath && button.deviceType == InputManager::MouseDeviceType::PEN;
     genData.penId = button.penId;
     genData.penCamera = drawP.world.drawData.cam.c;
     genData.penScreenOffset = drawP.world.main.input.screenOffset;

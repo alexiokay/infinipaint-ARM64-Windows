@@ -37,9 +37,20 @@ to pinned SDL 3.4.16 and fails if expected source entrypoints change.
 
 ## Settings and behavior
 
-Tablet settings in both interfaces now show **Pen brush: local wobble correction
-(experimental)**, enabled by default. Test 6 defaults are radius 12 DIP, revision
-window 0.120 seconds, cap 4 DIP. Settings are captured at contact-down.
+The Brush panel (desktop and phone), beside **Round Caps**, now has
+**Preserve per-point pen pressure**. It defaults **off**, including for old
+configuration files without this key, so upstream's original brush pressure
+smoothing remains the default. Enabling it selects our direct per-sample pen
+path on the next stroke. The choice is saved with the brush settings and does
+not alter existing drawings or switch the path of a stroke already in progress.
+
+Tablet settings separately show **Pen brush: local wobble correction
+(experimental)**. Its stored/default setting is unchanged, but correction only
+runs when the Brush preservation option is enabled; the UI explains when it is
+inactive. Test 6 filter parameters are radius 12 DIP, revision window 0.120
+seconds, cap 4 DIP. Both choices are captured at contact-down.
+
+When pressure preservation is enabled:
 
 - The live endpoint stays at the last in-contact report, without prediction.
   Recent points can revise as future samples arrive; this is not zero-latency
@@ -50,8 +61,9 @@ window 0.120 seconds, cap 4 DIP. Settings are captured at contact-down.
 - A streaming frozen prefix avoids re-filtering the entire stroke on every
   report. Rebuilding the mesh still uses upstream's whole-stroke rendering path;
   very long strokes need performance testing.
-- Off bypasses positional filtering AND the old midpoint/Catmull-Rom path for pen
-  brushes. It is a direct reported-point centerline, not the legacy Off behavior.
+- Turning wobble correction off keeps a direct reported-point centerline.
+  Turning Brush pressure preservation off restores upstream's original
+  midpoint/Catmull-Rom and pressure-smoothing path, regardless of the filter setting.
 - Pen pressure is paired with each contact sample. No additional pressure
   smoothing or last-two-point tip-width rewriting is applied to this pen path.
   Mouse/touch drawing and erasing retain upstream stroke-generation behavior.
