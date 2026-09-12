@@ -54,15 +54,16 @@ void ScrollArea::layout(const Clay_ElementId& id, const Options& options) {
             contentDimensions = {scrollData.contentDimensions.width, scrollData.contentDimensions.height};
         if(boundingBox.has_value()) {
             auto& bb = boundingBox.value();
+            const Vector2f viewport{std::max(0.0f,bb.width()-gutterY-4),std::max(0.0f,bb.height()-gutterX-4)};
             clamp_scroll();
 
             if((contentDimensions.y() > bb.height() && opts.scrollVertical) || (contentDimensions.x() > bb.width() && opts.scrollHorizontal)) {
                 gui.in_dynamic_area([&] {
-                    opts.innerContent({.contentDimensions = contentDimensions, .containerDimensions = bb.dim(), .scrollOffset = &scrollOffset});
+                    opts.innerContent({.contentDimensions = contentDimensions, .containerDimensions = viewport, .scrollOffset = &scrollOffset});
                 });
             }
             else
-                opts.innerContent({.contentDimensions = contentDimensions, .containerDimensions = bb.dim(), .scrollOffset = &scrollOffset});
+                opts.innerContent({.contentDimensions = contentDimensions, .containerDimensions = viewport, .scrollOffset = &scrollOffset});
 
             clamp_scroll();
 

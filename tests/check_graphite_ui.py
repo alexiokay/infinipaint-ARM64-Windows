@@ -55,6 +55,24 @@ class GraphiteUI(unittest.TestCase):
         eraser = source("src/DrawingProgram/Tools/EraserTool.cpp")
         self.assertIn('"Whole objects", false, "Portions", true', eraser)
 
+    def test_compact_panel_and_geometry_wiring(self):
+        panel = source("src/DrawingProgram/DrawingProgram.cpp")
+        for token in ('CLAY_ATTACH_TO_ROOT', '"panel pin"', '"panel reset"',
+                      'toolPanelDragPen', 'toolPanelDragFinger', 'window.windowFocus',
+                      'if (!world.main.toolConfig.toolPanel.pinned && toolPanelExpanded)',
+                      't.quick_colors();'):
+            self.assertIn(token, panel)
+        self.assertIn("toolPanel", source("src/DrawingProgram/ToolConfiguration.hpp"))
+        slider = source("src/GUIStuff/Elements/NumberSlider.hpp")
+        self.assertIn("UIControlGeometry::sliderPosition", slider)
+        self.assertIn("UIControlGeometry::sliderFraction", slider)
+        scroll = source("src/GUIStuff/Elements/ScrollArea.cpp")
+        self.assertIn("gutterY+2", scroll)
+        self.assertIn(".containerDimensions = viewport", scroll)
+        self.assertIn("canvas->drawRRect(outline,outlinePaint)", source("src/GUIStuff/GUIManager.cpp"))
+        load = source("src/MainProgram.cpp")
+        self.assertLess(load.index('j.at("toolConfig").get_to(toolConfig)'), load.index("toolConfig.brush.migrateCorrection"))
+
     def test_cursor_overlay_is_separate_from_erase_path(self):
         draw = source("src/DrawingProgram/Tools/EraserTool.cpp").split("void EraserTool::draw(", 1)[1]
         self.assertIn("ToolCursor::visible", draw)
