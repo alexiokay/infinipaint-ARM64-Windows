@@ -111,7 +111,7 @@ struct InputManager {
         bool isEraser = false;
         float pressure = 0.0f;
         uint8_t leftClicksSaved = 0;
-        Vector2f previousPos;
+        Vector2f previousPos = {0, 0};
 
         std::chrono::steady_clock::time_point lastPenLeftClickTime;
         std::array<KeyData, 256> buttons;

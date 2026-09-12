@@ -25,17 +25,23 @@ namespace GUIStuff {
 RadioButton::RadioButton(GUIManager& gui):
     Element(gui) {}
 
-void RadioButton::layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick) {
+void RadioButton::layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick, std::string_view label) {
     this->onClick = onClick;
     this->isTicked = isTicked;
 
-    float size = 20;
+    const float size = gui.io.theme->controlHeight;
     CLAY(id, {
         .layout = {
-            .sizing = {.width = CLAY_SIZING_FIXED(size), .height = CLAY_SIZING_FIXED(size)}
+            .sizing = {.width = label.empty() ? CLAY_SIZING_FIXED(size) : CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIT(size)},
+            .padding = {.left = label.empty() ? uint16_t(0) : static_cast<uint16_t>(size + 4), .right = 4, .top = 4, .bottom = 4},
+            .childAlignment = {.y = CLAY_ALIGN_Y_CENTER}
         },
         .custom = { .customData = this }
-    }) {}
+    }) {
+        if (!label.empty())
+            CLAY_TEXT(gui.strArena.std_str_to_clay_str(label), CLAY_TEXT_CONFIG({
+                .textColor = convert_vec4<Clay_Color>(gui.io.theme->frontColor1), .fontSize = gui.io.fontSize}));
+    }
 }
 
 void RadioButton::update() {
@@ -72,38 +78,21 @@ void RadioButton::input_finger_touch_callback(const InputManager::FingerTouchCal
 void RadioButton::clay_draw(SkCanvas* canvas, UpdateInputData& io, Clay_RenderCommand* command, bool skiaAA) {
     auto& bb = boundingBox.value();
 
+    const float size = io.theme->controlHeight;
     canvas->save();
-    canvas->translate(bb.min.x(), bb.min.y());
-    canvas->scale(bb.width(), bb.height());
-    canvas->translate(0.5f, 0.5f);
+    canvas->translate(bb.min.x() + size * 0.5f, bb.min.y() + bb.height() * 0.5f);
+    canvas->scale(size, size);
 
-    if(isTicked()) {
-        SkPaint p;
-        p.setAntiAlias(skiaAA);
-        p.setColor4f(convert_vec4<SkColor4f>(io.theme->fillColor1));
+    SkPaint p;
+    p.setAntiAlias(skiaAA);
+    p.setColor4f(isTicked() || is_hovering_animation() ? io.theme->fillColor1 : io.theme->fillColor2);
+    p.setStyle(SkPaint::kStroke_Style);
+    p.setStrokeWidth(0.06f);
+    canvas->drawCircle(0, 0, 0.33f, p);
+    if (isTicked()) {
         p.setStyle(SkPaint::kFill_Style);
-        canvas->drawCircle(0.0f, 0.0f, 0.5f, p);
-
-        SkPaint innerCircleP;
-        innerCircleP.setAntiAlias(skiaAA);
-        innerCircleP.setColor4f(convert_vec4<SkColor4f>(io.theme->backColor2));
-        innerCircleP.setStyle(SkPaint::kFill_Style);
-
-        static BezierEasing easeRadius(0.68, -2.55, 0.265, 3.55);
-        float lerpTime2 = easeRadius(hoverAnimation / RADIOBUTTON_ANIMATION_TIME);
-        float innerCircleRadius = lerp_vec(0.3f, 0.2f, lerpTime2);
-
-        canvas->drawCircle(0.0f, 0.0f, innerCircleRadius, innerCircleP);
+        canvas->drawCircle(0, 0, 0.17f, p);
     }
-    else {
-        SkPaint p;
-        p.setAntiAlias(skiaAA);
-        p.setColor4f(convert_vec4<SkColor4f>(is_hovering_animation() ? io.theme->fillColor1 : io.theme->backColor2));
-        p.setStyle(SkPaint::kStroke_Style);
-        p.setStrokeWidth(0.15f);
-        canvas->drawCircle(0.0f, 0.0f, 0.5f, p);
-    }
-
     canvas->restore();
 }
 

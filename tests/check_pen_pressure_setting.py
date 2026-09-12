@@ -21,6 +21,8 @@ class PressureSettingWiring(unittest.TestCase):
         brush = source("src/DrawingProgram/Tools/BrushTool.cpp")
         for panel in ("gui_toolbox", "gui_phone_toolbox"):
             body = brush.split(f"void BrushTool::{panel}(", 1)[1].split("\nvoid ", 1)[0]
+            if "gui_inspector();" in body:
+                body = brush.split("void BrushTool::gui_inspector(", 1)[1].split("\nvoid ", 1)[0]
             self.assertIn('"Preserve per-point pen pressure"', body)
             self.assertIn("&drawP.world.main.toolConfig.brush.preservePenPressure", body)
         self.assertRegex(brush, r"mouse_button\([^;]*toolConfig\.brush\.preservePenPressure\);")

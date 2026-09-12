@@ -107,8 +107,10 @@ struct Theme {
     uint16_t childGap1 = 10;
     uint16_t padding1 = 8;
     float windowCorners1 = 8;
+    uint16_t controlHeight = 28;
+    float controlCorners = 6;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Theme, fillColor1, fillColor2, backColor0, backColor1, backColor2, frontColor1, frontColor2, errorColor, warningColor, hoverExpandTime, childGap1, padding1, windowCorners1)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Theme, fillColor1, fillColor2, backColor0, backColor1, backColor2, frontColor1, frontColor2, errorColor, warningColor, hoverExpandTime, childGap1, padding1, windowCorners1, controlHeight, controlCorners)
 };
 
 std::shared_ptr<Theme> get_default_dark_mode();

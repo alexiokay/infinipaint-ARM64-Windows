@@ -103,6 +103,7 @@ void ToolConfiguration::relative_width_gui(DrawingProgram& drawP, const char* la
     auto& lockedCameraScale = drawP.controls.lockedCameraScale;
     GUIStuff::ElementHelpers::slider_scalar_field(gui, "relstrokewidth", label, &get_stroke_size_relative_width_ref(drawP.drawTool->get_type()), 3.0f, 40.0f);
     GUIStuff::ElementHelpers::text_button(gui, "lock brush size", lockedCameraScale.has_value() ? "Unlock Size" : "Lock Size to Zoom", {
+        .isSelected = lockedCameraScale.has_value(),
         .wide = true,
         .onClick = [&] {
             if(lockedCameraScale.has_value())

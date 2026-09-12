@@ -17,6 +17,7 @@
  */
 
 #pragma once
+#include <string_view>
 #include "Element.hpp"
 
 namespace GUIStuff {
@@ -29,7 +30,7 @@ class RadioButton : public Element {
         virtual void input_finger_touch_callback(const InputManager::FingerTouchCallbackArgs& touch) override;
         virtual void update() override;
 
-        void layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick);
+        void layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick, std::string_view label = {});
     private:
         static constexpr float RADIOBUTTON_ANIMATION_TIME = 0.3;
         bool oldIsTicked = false;

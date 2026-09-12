@@ -47,6 +47,7 @@ class EraserTool : public DrawingProgramToolBase {
         std::unordered_map<CanvasComponentContainer::ObjInfo*, UpdatedComponentData> updatedComponents;
         std::unordered_set<CanvasComponentContainer::ObjInfo*> erasedComponents; // Pointers will be erased from this set if theyre erased in the main list (done by callback)
     private:
+        void gui_inspector();
         SkPath erasePath;
 
         BrushComponentCode::BrushStrokeGenerationData genData;

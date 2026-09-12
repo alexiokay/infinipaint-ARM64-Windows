@@ -54,6 +54,7 @@
 #include "Tools/EraserTool.hpp"
 
 #include "../GUIStuff/Elements/LayoutElement.hpp"
+#include "../GUIStuff/Elements/ScrollArea.hpp"
 #include "../GUIStuff/Elements/RotateWheel.hpp"
 #include "../GUIStuff/Elements/PositionAdjustingPopupMenu.hpp"
 #include "../GUIStuff/ElementHelpers/ButtonHelpers.hpp"
@@ -556,7 +557,7 @@ void DrawingProgram::tool_options_gui(Toolbar& t) {
     gui.element<LayoutElement>("Drawing program tool options gui", [&] (LayoutElement*, const Clay_ElementId& lId) {
         CLAY(lId, {
             .layout = {
-                .sizing = {.width = CLAY_SIZING_FIT(minGUIWidth), .height = CLAY_SIZING_FIT(0)},
+                .sizing = {.width = CLAY_SIZING_FIT(minGUIWidth), .height = CLAY_SIZING_FIT(0, std::max(100.0f, io.windowSize.y() * 0.75f))},
                 .padding = CLAY_PADDING_ALL(io.theme->padding1),
                 .childGap = io.theme->childGap1,
                 .childAlignment = { .x = CLAY_ALIGN_X_LEFT, .y = CLAY_ALIGN_Y_TOP},
@@ -565,7 +566,20 @@ void DrawingProgram::tool_options_gui(Toolbar& t) {
             .backgroundColor = convert_vec4<Clay_Color>(io.theme->backColor1),
             .cornerRadius = CLAY_CORNER_RADIUS(io.theme->windowCorners1)
         }) {
-            drawTool->gui_toolbox(t);
+            gui.clipping_element<ScrollArea>("tool inspector scroll", ScrollArea::Options{
+                .scrollVertical = true,
+                .clipVertical = true,
+                .scrollbarY = ScrollArea::ScrollbarType::NORMAL,
+                .innerContent = [&](const ScrollArea::InnerContentParameters&) {
+                    CLAY_AUTO_ID({.layout = {
+                        .sizing = {.width = CLAY_SIZING_GROW(minGUIWidth), .height = CLAY_SIZING_FIT(0)},
+                        .childGap = io.theme->childGap1,
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM
+                    }}) {
+                        drawTool->gui_toolbox(t);
+                    }
+                }
+            });
         }
     });
 }

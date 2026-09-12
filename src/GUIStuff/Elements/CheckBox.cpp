@@ -27,17 +27,23 @@ namespace GUIStuff {
 CheckBox::CheckBox(GUIManager& gui):
     Element(gui) {}
 
-void CheckBox::layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick) {
+void CheckBox::layout(const Clay_ElementId& id, const std::function<bool()>& isTicked, const std::function<void()>& onClick, std::string_view label) {
     this->isTicked = isTicked;
     this->onClick = onClick;
 
-    float size = 20;
+    const float size = gui.io.theme->controlHeight;
     CLAY(id, {
         .layout = {
-            .sizing = {.width = CLAY_SIZING_FIXED(size), .height = CLAY_SIZING_FIXED(size)}
+            .sizing = {.width = label.empty() ? CLAY_SIZING_FIXED(size) : CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIT(size)},
+            .padding = {.left = label.empty() ? uint16_t(0) : static_cast<uint16_t>(size + 4), .right = 4, .top = 4, .bottom = 4},
+            .childAlignment = {.y = CLAY_ALIGN_Y_CENTER}
         },
         .custom = { .customData = this }
-    }) {}
+    }) {
+        if (!label.empty())
+            CLAY_TEXT(gui.strArena.std_str_to_clay_str(label), CLAY_TEXT_CONFIG({
+                .textColor = convert_vec4<Clay_Color>(gui.io.theme->frontColor1), .fontSize = gui.io.fontSize}));
+    }
 }
 
 void CheckBox::update() {
@@ -74,67 +80,27 @@ void CheckBox::input_finger_touch_callback(const InputManager::FingerTouchCallba
 void CheckBox::clay_draw(SkCanvas* canvas, UpdateInputData& io, Clay_RenderCommand* command, bool skiaAA) {
     auto& bb = boundingBox.value();
 
+    const float size = io.theme->controlHeight;
     canvas->save();
-    canvas->translate(bb.min.x(), bb.min.y());
-    canvas->scale(bb.width(), bb.height());
-    canvas->translate(0.5f, 0.5f);
+    canvas->translate(bb.min.x() + size * 0.5f, bb.min.y() + bb.height() * 0.5f);
+    canvas->scale(size, size);
 
     SkPaint p;
     p.setAntiAlias(skiaAA);
-    if(isTicked()) {
-        SkRect checkBox = SkRect::MakeLTRB(-0.5f, -0.5f, 0.5f, 0.5f);
-        p.setColor4f(convert_vec4<SkColor4f>(io.theme->fillColor1));
-        p.setStyle(SkPaint::kFill_Style);
-        canvas->drawRoundRect(checkBox, 0.25f, 0.25f, p);
-    }
-    else {
-        SkRect checkBox = SkRect::MakeLTRB(-0.45f, -0.45f, 0.45f, 0.45f);
-        p.setColor4f(convert_vec4<SkColor4f>(is_hovering_animation() ? io.theme->fillColor1 : io.theme->fillColor2));
+    const bool selected = isTicked();
+    p.setColor4f(selected || is_hovering_animation() ? io.theme->fillColor1 : io.theme->fillColor2);
+    p.setStyle(selected ? SkPaint::kFill_Style : SkPaint::kStroke_Style);
+    p.setStrokeWidth(0.06f);
+    canvas->drawRoundRect(SkRect::MakeLTRB(-0.33f, -0.33f, 0.33f, 0.33f), 0.12f, 0.12f, p);
+    if (selected) {
+        p.setColor4f(io.theme->backColor1);
         p.setStyle(SkPaint::kStroke_Style);
-        p.setStrokeWidth(0.15f);
-        canvas->drawRoundRect(checkBox, 0.25f, 0.25f, p);
-    }
-
-    if(isTicked()) {
-        SkPaint checkP;
-        checkP.setAntiAlias(skiaAA);
-        checkP.setColor4f(io.theme->backColor1);
-        checkP.setStyle(SkPaint::kFill_Style);
-        checkP.setStrokeWidth(0.12);
-        checkP.setStrokeCap(SkPaint::kRound_Cap);
-        checkP.setStrokeJoin(SkPaint::kRound_Join);
-
-        SkPathBuilder checkPathB;
-        Vector2f checkP1{(4.5/17.0) - 0.5, (8.5/17.0) - 0.5};
-        Vector2f checkP2{(7.5/17.0) - 0.5, (12.0/17.0) - 0.5};
-        Vector2f checkP3{(12.5/17.0) - 0.5, (6.0/17.0) - 0.5};
-
-        Vector2f rectP1{-0.2f, -0.2f};
-        Vector2f rectP2{-0.2f,  0.2f};
-        Vector2f rectP3{ 0.2f,  0.2f};
-        Vector2f rectP4{ 0.2f, -0.2f};
-
-        static BezierEasing anim{0.445, -0.733, 0.575, 1.627};
-
-        float lerpTime2 = anim(hoverAnimation / CHECKBOX_ANIMATION_TIME);
-
-        std::array<Vector2f, 5> points;
-
-        points[0] = lerp_vec(checkP1, rectP1, lerpTime2);
-        points[1] = lerp_vec(checkP2, rectP2, lerpTime2);
-        points[2] = lerp_vec(checkP3, rectP3, lerpTime2);
-        points[3] = lerp_vec(checkP2, rectP4, lerpTime2);
-        points[4] = points[0];
-
-        checkPathB.moveTo(points[0].x(), points[0].y());
-        for(unsigned i = 1; i < 5; i++)
-            checkPathB.lineTo(points[i].x(), points[i].y());
-        checkPathB.close();
-
-        SkPath checkPath = checkPathB.detach();
-        canvas->drawPath(checkPath, checkP);
-        checkP.setStyle(SkPaint::kStroke_Style);
-        canvas->drawPath(checkPath, checkP);
+        p.setStrokeWidth(0.08f);
+        p.setStrokeCap(SkPaint::kRound_Cap);
+        p.setStrokeJoin(SkPaint::kRound_Join);
+        SkPathBuilder tick;
+        tick.moveTo(-0.18f, 0.0f).lineTo(-0.045f, 0.14f).lineTo(0.19f, -0.14f);
+        canvas->drawPath(tick.detach(), p);
     }
     canvas->restore();
 }

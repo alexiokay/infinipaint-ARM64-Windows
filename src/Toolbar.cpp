@@ -1586,6 +1586,8 @@ void Toolbar::general_settings_inner_gui() {
                 }
                 case GSETTINGS_THEME: {
                     general_scroll_area("theme", [&] {
+                        if (main.conf.themeCurrentlyLoaded == "Default")
+                            text_label_light(gui, "Graphite - built-in default. Save As to customise a copy.");
                         if(!themeData.selectedThemeIndex)
                             reload_theme_list();
 
@@ -1657,6 +1659,8 @@ void Toolbar::general_settings_inner_gui() {
                         input_scalar_field<uint16_t>(gui, "childGap1", "Gap between child elements", &io.theme->childGap1, 0, 30);
                         input_scalar_field<uint16_t>(gui, "padding1", "Window padding", &io.theme->padding1, 0, 30);
                         slider_scalar_field<float>(gui, "windowCorners1", "Window corner radius", &io.theme->windowCorners1, 0, 30);
+                        input_scalar_field<uint16_t>(gui, "controlHeight", "Control height", &io.theme->controlHeight, 24, 48);
+                        slider_scalar_field<float>(gui, "controlCorners", "Control corner radius", &io.theme->controlCorners, 0, 12);
                     });
                     break;
                 }

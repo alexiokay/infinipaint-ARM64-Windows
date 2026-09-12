@@ -67,10 +67,10 @@ void SelectableButton::layout(const Clay_ElementId& id, const Data& d) {
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
         },
         .backgroundColor = convert_vec4<Clay_Color>(backgroundColor),
-        .cornerRadius = CLAY_CORNER_RADIUS(4),
+        .cornerRadius = CLAY_CORNER_RADIUS(io.theme->controlCorners),
         .border = {
             .color = convert_vec4<Clay_Color>(borderColor),
-            .width = CLAY_BORDER_OUTSIDE(2)
+            .width = CLAY_BORDER_OUTSIDE(1)
         }
     }) {
         CLAY_AUTO_ID({.layout = { 
@@ -79,7 +79,7 @@ void SelectableButton::layout(const Clay_ElementId& id, const Data& d) {
                 .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
             },
             .backgroundColor = convert_vec4<Clay_Color>(backgroundColorHighlight),
-            .cornerRadius = CLAY_CORNER_RADIUS(4)
+            .cornerRadius = CLAY_CORNER_RADIUS(io.theme->controlCorners)
         }) {
             if(d.innerContent)
                 d.innerContent({.isSelected = d.isSelected, .isHovering = isHovering, .isHeld = isHeld});

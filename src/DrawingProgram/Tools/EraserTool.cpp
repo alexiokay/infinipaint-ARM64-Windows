@@ -17,6 +17,8 @@
  */
 
 #include "EraserTool.hpp"
+#include "CanvasToolCursor.hpp"
+#include "../../GUIStuff/ElementHelpers/ToolInspectorHelpers.hpp"
 #include "../DrawingProgram.hpp"
 #include "../../MainProgram.hpp"
 #include "../../DrawData.hpp"
@@ -39,37 +41,41 @@ DrawingProgramToolType EraserTool::get_type() {
     return DrawingProgramToolType::ERASER;
 }
 
-void EraserTool::gui_toolbox(Toolbar& t) {
-    using namespace GUIStuff;
-    using namespace ElementHelpers;
-
-    auto& gui = drawP.world.main.g.gui;
-    gui.new_id("eraser tool", [&] {
-        text_label_centered(gui, "Eraser");
-        drawP.world.main.toolConfig.relative_width_gui(drawP, "Size");
-        text_label(gui, "Erase from:");
-        radio_button_selector(gui, "layer selector", &drawP.controls.layerSelector, {
-            {"Layer being edited", DrawingProgramLayerManager::LayerSelector::LAYER_BEING_EDITED},
-            {"All visible layers", DrawingProgramLayerManager::LayerSelector::ALL_VISIBLE_LAYERS}
-        });
-        checkbox_boolean_field(gui, "erase details", "Erase details (meshes only)", &drawP.world.main.toolConfig.eraser.eraseDetail);
-    });
+void EraserTool::gui_toolbox(Toolbar&) {
+    gui_inspector();
 }
 
-void EraserTool::gui_phone_toolbox(PhoneDrawingProgramScreen& t) {
+void EraserTool::gui_phone_toolbox(PhoneDrawingProgramScreen&) {
+    gui_inspector();
+}
+
+void EraserTool::gui_inspector() {
     using namespace GUIStuff;
     using namespace ElementHelpers;
-
-    auto& gui = drawP.world.main.g.gui;
-
+    auto& main = drawP.world.main;
+    auto& gui = main.g.gui;
     gui.new_id("eraser tool", [&] {
-        drawP.world.main.toolConfig.relative_width_gui(drawP, "Size");
-        text_label(gui, "Erase from:");
-        radio_button_selector(gui, "layer selector", &drawP.controls.layerSelector, {
-            {"Layer being edited", DrawingProgramLayerManager::LayerSelector::LAYER_BEING_EDITED},
-            {"All visible layers", DrawingProgramLayerManager::LayerSelector::ALL_VISIBLE_LAYERS}
+        tool_inspector(gui, "Eraser", [&] {
+            inspector_section(gui, "SIZE", [&] {
+                main.toolConfig.relative_width_gui(drawP, "Size");
+            });
+            inspector_section(gui, "ERASE FROM", [&] {
+                using Layer = DrawingProgramLayerManager::LayerSelector;
+                inspector_choice(gui, "layers", &drawP.controls.layerSelector,
+                    "Current layer", Layer::LAYER_BEING_EDITED,
+                    "All visible", Layer::ALL_VISIBLE_LAYERS);
+            });
+            inspector_section(gui, "BEHAVIOUR", [&] {
+                inspector_choice(gui, "mode", &main.toolConfig.eraser.eraseDetail,
+                    "Whole objects", false, "Portions", true);
+                inspector_hint(gui, main.toolConfig.eraser.eraseDetail ?
+                    "Cuts mesh strokes. Fully covered objects can still be removed." :
+                    "Touch an object with the eraser to remove it entirely.");
+                inspector_hint(gui, main.conf.realTimeEraser ?
+                    "Erases while moving. The outline shows the current footprint." :
+                    "Applies on release. The shaded trail previews the erase region.");
+            });
         });
-        checkbox_boolean_field(gui, "erase details", "Erase details (meshes only)", &drawP.world.main.toolConfig.eraser.eraseDetail);
     });
 }
 
@@ -320,23 +326,38 @@ bool EraserTool::prevent_undo_or_redo() {
 }
 
 void EraserTool::draw(SkCanvas* canvas, const DrawData& drawData) {
-    bool touchDeviceRequirement = !drawP.world.main.input.isTouchDevice || (isErasing && !drawP.world.main.conf.realTimeEraser);
-    bool overGuiRequirement = !drawData.main->g.gui.cursor_obstructed() || isErasing;
-    if(touchDeviceRequirement && overGuiRequirement && !erasePath.isEmpty() && drawData.main->window.mouseFocus) {
-        if(isErasing) {
-            CanvasComponentContainer::TransformData drawTransform = CanvasComponentContainer::calculate_draw_transform(drawData.cam.c, genData.coords);
-            canvas->save();
-            CanvasComponentContainer::canvas_do_transform(canvas, drawTransform);
-        }
-        SkPaint linePaint;
-        linePaint.setAntiAlias(drawData.skiaAA);
-        linePaint.setColor4f({0.0f, 0.0f, 0.0f, 0.4f});
-        linePaint.setStyle(SkPaint::kFill_Style);
-        canvas->drawPath(erasePath, linePaint);
+    const auto& main = *drawData.main;
+    const auto& input = main.input;
+    if (drawData.takingScreenshot || !ToolCursor::visible(main.window.windowFocus,
+        main.window.mouseFocus, input.isTouchDevice, input.pen.inProximity,
+        input.pen.isDown, isErasing)) return;
+    if (main.g.gui.cursor_obstructed() && !isErasing) return;
 
-        linePaint.setColor4f({1.0f, 1.0f, 1.0f, 0.4f});
-        canvas->drawPath(erasePath, linePaint);
-        if(isErasing)
-            canvas->restore();
+    const bool usePenPosition = isErasing ? genData.deviceType == InputManager::MouseDeviceType::PEN : (input.pen.inProximity || input.pen.isDown);
+    const Vector2f pos = usePenPosition ? input.pen.previousPos : input.mouse.pos;
+    if (pos.x() < 0 || pos.y() < 0 || pos.x() >= main.window.size.x() || pos.y() >= main.window.size.y()) return;
+    const float scale = ToolCursor::displayScale(SDL_GetWindowDisplayScale(main.window.sdlWindow));
+
+    // Retain the pending region preview for non-real-time erasing only.
+    if (isErasing && !main.conf.realTimeEraser && !erasePath.isEmpty()) {
+        canvas->save();
+        const auto transform = CanvasComponentContainer::calculate_draw_transform(drawData.cam.c, genData.coords);
+        CanvasComponentContainer::canvas_do_transform(canvas, transform);
+        SkPaint preview;
+        preview.setAntiAlias(true);
+        preview.setColor4f({1, 1, 1, 0.18f});
+        canvas->drawPath(erasePath, preview);
+        canvas->restore();
     }
+
+    float radius = 0;
+    if (isErasing && !genData.brushPoints.empty()) {
+        const auto transform = CanvasComponentContainer::calculate_draw_transform(drawData.cam.c, genData.coords);
+        radius = ToolCursor::radius(genData.brushPoints.back().width, transform.scale);
+    } else {
+        const auto size = main.toolConfig.get_relative_width_stroke_size(drawP, drawData.cam.c.inverseScale);
+        if (!size.first) return;
+        radius = ToolCursor::radius(*size.first);
+    }
+    ToolCursor::draw(canvas, pos.x(), pos.y(), radius, scale);
 }

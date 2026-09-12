@@ -46,13 +46,22 @@ namespace GUIStuff {
 
     std::shared_ptr<Theme> get_default_dark_mode() {
         std::shared_ptr<Theme> theme(std::make_shared<Theme>());
-        theme->fillColor1 = {0.65f, 0.64f, 1.0f, 1.0f};
-        theme->fillColor2 = {0.6f, 0.6f, 0.785f, 1.0f};
-        theme->backColor0 = {0.00f, 0.00f, 0.00f, 1.0f};
-        theme->backColor1 = {0.156f, 0.156f, 0.18f, 1.0f};
-        theme->backColor2 = {0.24f, 0.24f, 0.29f, 1.0f};
-        theme->frontColor1 = {0.87f, 0.87f, 0.87f, 1.0f};
-        theme->frontColor2 = {0.64f, 0.64f, 0.64f, 1.0f};
+        // Graphite: neutral surfaces, restrained violet accents, readable secondary text.
+        // This affects app chrome only, never the document's canvas colour.
+        theme->fillColor1 = {0.67f, 0.65f, 0.98f, 1.0f};
+        theme->fillColor2 = {0.42f, 0.44f, 0.50f, 1.0f};
+        theme->backColor0 = {0.055f, 0.060f, 0.070f, 1.0f};
+        theme->backColor1 = {0.110f, 0.120f, 0.140f, 1.0f};
+        theme->backColor2 = {0.170f, 0.185f, 0.215f, 1.0f};
+        theme->frontColor1 = {0.93f, 0.94f, 0.96f, 1.0f};
+        theme->frontColor2 = {0.70f, 0.73f, 0.78f, 1.0f};
+        theme->errorColor = {1.0f, 0.42f, 0.44f, 1.0f};
+        theme->warningColor = {0.98f, 0.76f, 0.38f, 1.0f};
+        theme->padding1 = 12;
+        theme->childGap1 = 8;
+        theme->windowCorners1 = 10;
+        theme->controlHeight = 32;
+        theme->controlCorners = 6;
         return theme;
     }
     

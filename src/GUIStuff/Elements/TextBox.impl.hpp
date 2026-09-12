@@ -43,7 +43,7 @@ template <typename T> void TextBox<T>::layout(const Clay_ElementId& id, const Te
 
     CLAY(id, {
         .layout = {
-            .sizing = {.width = CLAY_SIZING_GROW(static_cast<float>(io.fontSize * 2)), .height = CLAY_SIZING_FIXED(static_cast<float>(io.fontSize * 1.25f))}
+            .sizing = {.width = CLAY_SIZING_GROW(static_cast<float>(io.fontSize * 2)), .height = CLAY_SIZING_FIXED(std::max(io.fontSize * 1.25f, userInfo.decorations ? static_cast<float>(io.theme->controlHeight) : 0.0f))}
         },
         .custom = { .customData = this }
     }) {
@@ -69,12 +69,14 @@ template <typename T> void TextBox<T>::clay_draw(SkCanvas* canvas, UpdateInputDa
     SkRect r = SkRect::MakeXYWH(bb.min.x(), bb.min.y(), bb.width(), bb.height());
 
     if(userInfo.decorations) {
-        canvas->drawRect(r, SkPaint(io.theme->backColor2));
+        SkPaint background(io.theme->backColor2);
+        background.setAntiAlias(skiaAA);
+        canvas->drawRoundRect(r, io.theme->controlCorners, io.theme->controlCorners, background);
         SkPaint outline(is_selected() ? io.theme->fillColor1 : io.theme->backColor2);
         outline.setStroke(true);
-        outline.setStrokeWidth(2.0f);
+        outline.setStrokeWidth(1.0f);
         outline.setAntiAlias(skiaAA);
-        canvas->drawRoundRect(r, 2.0f, 2.0f, outline);
+        canvas->drawRoundRect(r, io.theme->controlCorners, io.theme->controlCorners, outline);
     }
 
     canvas->clipRect(r);

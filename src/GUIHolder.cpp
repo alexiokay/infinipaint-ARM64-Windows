@@ -19,6 +19,8 @@
 #include "GUIHolder.hpp"
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
+#include <cmath>
 #include "MainProgram.hpp"
 
 #include <include/core/SkStream.h>
@@ -91,6 +93,8 @@ bool GUIHolder::load_theme(const std::filesystem::path& configPath, const std::s
                 f >> j;
                 auto theme(std::make_shared<GUIStuff::Theme>());
                 j.get_to(*theme);
+                theme->controlHeight = std::clamp<uint16_t>(theme->controlHeight, 24, 48);
+                theme->controlCorners = std::isfinite(theme->controlCorners) ? std::clamp(theme->controlCorners, 0.0f, 12.0f) : 6.0f;
                 gui.io.theme = theme;
                 successfullyLoaded = true;
             } catch(...) {}

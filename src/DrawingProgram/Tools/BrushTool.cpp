@@ -17,6 +17,9 @@
  */
 
 #include "BrushTool.hpp"
+#include "CanvasToolCursor.hpp"
+#include "../../GUIStuff/ElementHelpers/ToolInspectorHelpers.hpp"
+#include "../../GUIStuff/ElementHelpers/NumberSliderHelpers.hpp"
 #include <Helpers/ConvertVec.hpp>
 #include "../../GUIStuff/GUIManager.hpp"
 #include "../DrawingProgram.hpp"
@@ -150,30 +153,54 @@ void BrushTool::commit_stroke() {
     }
 }
 
-void BrushTool::gui_toolbox(Toolbar& t) {
-    using namespace GUIStuff;
-    using namespace ElementHelpers;
-
-    auto& gui = drawP.world.main.g.gui;
-
-    gui.new_id("brush tool", [&] {
-        text_label_centered(gui, "Brush");
-        checkbox_boolean_field(gui, "hasroundcaps", "Round Caps", &drawP.world.main.toolConfig.brush.hasRoundCaps);
-        checkbox_boolean_field(gui, "preserve pen pressure", "Preserve per-point pen pressure", &drawP.world.main.toolConfig.brush.preservePenPressure);
-        drawP.world.main.toolConfig.relative_width_gui(drawP, "Size");
-    });
+void BrushTool::gui_toolbox(Toolbar&) {
+    gui_inspector();
 }
 
-void BrushTool::gui_phone_toolbox(PhoneDrawingProgramScreen& t) {
+void BrushTool::gui_phone_toolbox(PhoneDrawingProgramScreen&) {
+    gui_inspector();
+}
+
+void BrushTool::gui_inspector() {
     using namespace GUIStuff;
     using namespace ElementHelpers;
-
-    auto& gui = drawP.world.main.g.gui;
-
+    auto& main = drawP.world.main;
+    auto& gui = main.g.gui;
     gui.new_id("brush tool", [&] {
-        checkbox_boolean_field(gui, "hasroundcaps", "Round Caps", &drawP.world.main.toolConfig.brush.hasRoundCaps);
-        checkbox_boolean_field(gui, "preserve pen pressure", "Preserve per-point pen pressure", &drawP.world.main.toolConfig.brush.preservePenPressure);
-        drawP.world.main.toolConfig.relative_width_gui(drawP, "Size");
+        tool_inspector(gui, "Brush", [&] {
+            inspector_section(gui, "SIZE", [&] {
+                main.toolConfig.relative_width_gui(drawP, "Size");
+            });
+            inspector_section(gui, "STROKE", [&] {
+                checkbox_boolean_field(gui, "hasroundcaps", "Round Caps", &drawP.world.main.toolConfig.brush.hasRoundCaps);
+                checkbox_boolean_field(gui, "preserve pen pressure", "Preserve per-point pen pressure", &drawP.world.main.toolConfig.brush.preservePenPressure);
+                inspector_hint(gui, main.toolConfig.brush.preservePenPressure ?
+                    "Per-point pressure. Earlier widths stay unchanged." : "Original pressure smoothing (default).");
+            });
+            text_button(gui, "advanced", advancedSettingsOpen ? "Hide advanced settings" : "Advanced settings", {
+                .drawType = SelectableButton::DrawType::TRANSPARENT_BORDER,
+                .isSelected = advancedSettingsOpen, .wide = true,
+                .onClick = [this] { advancedSettingsOpen = !advancedSettingsOpen; }
+            });
+            if (advancedSettingsOpen) {
+                inspector_section(gui, "PEN RESPONSE", [&] {
+                    checkbox_boolean_field(gui, "pressure width", "Pressure affects size", &main.conf.tabletOptions.pressureAffectsBrushWidth);
+                    inspector_hint(gui, "Shared pen setting; also affects the eraser.");
+                    if (main.toolConfig.brush.preservePenPressure) {
+                        checkbox_boolean_field(gui, "local correction", "Local wobble correction", &main.conf.tabletOptions.penFilter.enabled);
+                        if (main.conf.tabletOptions.penFilter.enabled) {
+                            slider_scalar_field(gui, "radius", "Radius (DIP)", &main.conf.tabletOptions.penFilter.radius, 4.0, 20.0, {.decimalPrecision = 1});
+                            slider_scalar_field(gui, "window", "Revision (seconds)", &main.conf.tabletOptions.penFilter.window, 0.040, 0.200, {.decimalPrecision = 3});
+                            slider_scalar_field(gui, "cap", "Max correction (DIP)", &main.conf.tabletOptions.penFilter.cap, 0.0, 6.0, {.decimalPrecision = 1});
+                            inspector_hint(gui, "Experimental. Larger windows can soften detail.");
+                        }
+                    } else {
+                        inspector_hint(gui, "Enable per-point pressure to use local wobble correction.");
+                    }
+                    inspector_hint(gui, "Set pen response before starting a stroke.");
+                });
+            }
+        });
     });
 }
 
@@ -186,27 +213,19 @@ bool BrushTool::prevent_undo_or_redo() {
 }
 
 void BrushTool::draw(SkCanvas* canvas, const DrawData& drawData) {
-    if(!drawP.world.main.input.isTouchDevice && !drawData.main->g.gui.cursor_obstructed() && drawData.main->window.mouseFocus) {
-        auto relativeWidthResult = drawP.world.main.toolConfig.get_relative_width_stroke_size(drawP, drawP.world.drawData.cam.c.inverseScale);
-        if(relativeWidthResult.first.has_value()) {
-            float width = relativeWidthResult.first.value();
-            if(objInfoBeingEdited)
-                width *= genData.penWidth * 0.5f;
-            else
-                width *= 0.5f;
-            width += 1.0f;
-            Vector2f pos = drawData.main->input.mouse.pos;
-            SkPaint linePaint;
-            linePaint.setAntiAlias(drawData.skiaAA);
-            linePaint.setColor4f({1.0f, 1.0f, 1.0f, 1.0f});
-            linePaint.setStyle(SkPaint::kStroke_Style);
-            linePaint.setStrokeCap(SkPaint::kRound_Cap);
-            linePaint.setStrokeWidth(0.0f);
-            SkPath circ = SkPath::Circle(pos.x(), pos.y(), width);
-            canvas->drawPath(circ, linePaint);
-            linePaint.setColor4f({0.0f, 0.0f, 0.0f, 1.0f});
-            circ = SkPath::Circle(pos.x(), pos.y(), width - 1.0f);
-            canvas->drawPath(circ, linePaint);
-        }
-    }
+    const auto& main = *drawData.main;
+    const auto& input = main.input;
+    if (drawData.takingScreenshot || !ToolCursor::visible(main.window.windowFocus,
+        main.window.mouseFocus, input.isTouchDevice, input.pen.inProximity,
+        input.pen.isDown, objInfoBeingEdited != nullptr)) return;
+    if (main.g.gui.cursor_obstructed()) return;
+    const bool usePenPosition = objInfoBeingEdited ? genData.deviceType == InputManager::MouseDeviceType::PEN : (input.pen.inProximity || input.pen.isDown);
+    const Vector2f pos = usePenPosition ? input.pen.previousPos : input.mouse.pos;
+    if (pos.x() < 0 || pos.y() < 0 || pos.x() >= main.window.size.x() || pos.y() >= main.window.size.y()) return;
+    const auto size = main.toolConfig.get_relative_width_stroke_size(drawP, drawData.cam.c.inverseScale);
+    if (!size.first) return;
+    float diameter = *size.first;
+    if (objInfoBeingEdited) diameter *= genData.penWidth;
+    ToolCursor::draw(canvas, pos.x(), pos.y(), ToolCursor::radius(diameter),
+        SDL_GetWindowDisplayScale(main.window.sdlWindow));
 }
