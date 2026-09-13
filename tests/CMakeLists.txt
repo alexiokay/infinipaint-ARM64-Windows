@@ -37,3 +37,14 @@ if(WIN32 AND SDL_SOURCE)
         $<TARGET_FILE:SDL3::SDL3> $<TARGET_FILE_DIR:pen_history>)
     add_test(NAME pen_history COMMAND pen_history)
 endif()
+# Diagnostic-only dependency; not linked into InfiniPaint.
+if(PENTRACE_REPLAY_SOURCE)
+    add_executable(pen_replay ../tools/pen_replay.cpp
+        "${PENTRACE_REPLAY_SOURCE}/src/core.cpp"
+        "${PENTRACE_REPLAY_SOURCE}/src/trace_io.cpp")
+    target_include_directories(pen_replay PRIVATE "${PENTRACE_REPLAY_SOURCE}/src")
+    target_compile_features(pen_replay PRIVATE cxx_std_20)
+    if(MSVC)
+        set_property(TARGET pen_replay PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+endif()

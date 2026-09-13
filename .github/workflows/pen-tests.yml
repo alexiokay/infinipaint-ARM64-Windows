@@ -14,15 +14,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PenTraceTools/pen-trace-lab
+          ref: e13be1ccf06039c46ae9997beb8810fc28bf5929
+          path: replay-source
+      - run: git -C replay-source submodule update --init deps/pen-stabilizer
+      - uses: actions/checkout@v4
+        with:
+          repository: PenTraceTools/pen-trace-lab
           ref: ef6555a6defd12b8dde5afc408df4975eb4492b2
           path: reference
       - name: Test against the original PenTraceLab implementation
         run: |
           python3 tests/check_pen_pressure_setting.py
           python3 tests/check_graphite_ui.py
-          cmake -S tests -B build-tests -DPENTRACE_REFERENCE="$PWD/reference" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          python3 tests/check_original_compatibility.py
+          cmake -S tests -B build-tests -DPENTRACE_REFERENCE="$PWD/reference" -DPENTRACE_REPLAY_SOURCE="$PWD/replay-source" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           cmake --build build-tests --parallel
           ctest --test-dir build-tests --output-on-failure
+          python3 tests/check_replay.py build-tests/pen_replay
   windows-input:
     runs-on: windows-2022
     strategy:
@@ -32,6 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: git submodule update --init deps/pen-stabilizer
+      - uses: actions/checkout@v4
+        with:
+          repository: PenTraceTools/pen-trace-lab
+          ref: e13be1ccf06039c46ae9997beb8810fc28bf5929
+          path: replay-source
+      - run: git -C replay-source submodule update --init deps/pen-stabilizer
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -47,10 +61,21 @@ jobs:
       - name: Compile patched Windows input and portable filter tests
         shell: pwsh
         run: |
-          cmake -S tests -B build-tests -A ${{ matrix.arch }} "-DSDL_SOURCE=$pwd/SDL3-3.4.16"
+          cmake -S tests -B build-tests -A ${{ matrix.arch }} "-DSDL_SOURCE=$pwd/SDL3-3.4.16" "-DPENTRACE_REPLAY_SOURCE=$pwd/replay-source"
           if ($LASTEXITCODE) { throw 'Configure failed' }
           cmake --build build-tests --config Debug --parallel
           if ($LASTEXITCODE) { throw 'Build failed' }
       - name: Run x64 tests
         if: matrix.arch == 'x64'
         run: ctest --test-dir build-tests -C Debug --output-on-failure
+      - name: Build portable replay utility
+        run: cmake --build build-tests --config Release --target pen_replay --parallel
+      - name: Check replay export on x64
+        if: matrix.arch == 'x64'
+        run: python tests/check_replay.py build-tests/Release/pen_replay.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pen-replay-windows-${{ matrix.arch }}
+          path: |
+            build-tests/Release/pen_replay.exe
+            docs/BRUSH_PIPELINE.md
