@@ -79,3 +79,7 @@ jobs:
           path: |
             build-tests/Release/pen_replay.exe
             docs/BRUSH_PIPELINE.md
+            tools/REPLAY_LICENSES.md
+            COPYING
+            assets/data/third_party_licenses/PenTraceLab
+            deps/pen-stabilizer/LICENSE
