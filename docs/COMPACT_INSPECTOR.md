@@ -1,5 +1,7 @@
 # Compact movable inspector and control fixes
 
+Current pressure/geometry controls and migration are described in [BRUSH_PIPELINE.md](BRUSH_PIPELINE.md); older pressure-engine descriptions below are historical.
+
 Implemented on `graphite-ui`; build on the other PC. No local build, prerequisite
 installation or system/registry setting change is part of this work.
 

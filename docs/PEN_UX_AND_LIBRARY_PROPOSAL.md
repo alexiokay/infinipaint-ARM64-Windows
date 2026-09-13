@@ -1,5 +1,7 @@
 # Pen pressure UX and reusable stabilization core
 
+Current pressure/geometry controls and migration are described in [BRUSH_PIPELINE.md](BRUSH_PIPELINE.md); older pressure-engine descriptions below are historical.
+
 Status: **historical design proposal**. Recorded 2026-09-13.
 The subsequent [pressure modes and library integration](PRESSURE_MODES.md)
 implement the selector, explicit peak policy and source extraction on `graphite-ui`.

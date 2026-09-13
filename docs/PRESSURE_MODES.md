@@ -1,5 +1,7 @@
 # Pressure modes and shared filter source
 
+Current pressure/geometry controls and migration are described in [BRUSH_PIPELINE.md](BRUSH_PIPELINE.md); older pressure-engine descriptions below are historical.
+
 Update: [compact inspector and independent correction](COMPACT_INSPECTOR.md)
 supersedes the initial UI/path restrictions below. Smoothed pressure now also
 supports correction; the notes below document the first three-mode integration.

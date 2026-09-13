@@ -39,6 +39,7 @@ if(WIN32 AND SDL_SOURCE)
 endif()
 # Diagnostic-only dependency; not linked into InfiniPaint.
 if(PENTRACE_REPLAY_SOURCE)
+    file(TO_CMAKE_PATH "${PENTRACE_REPLAY_SOURCE}" PENTRACE_REPLAY_SOURCE)
     add_executable(pen_replay ../tools/pen_replay.cpp
         "${PENTRACE_REPLAY_SOURCE}/src/core.cpp"
         "${PENTRACE_REPLAY_SOURCE}/src/trace_io.cpp")
