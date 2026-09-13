@@ -30,6 +30,9 @@ int main(){
         c.migrateCorrection(enabled);
         check(c.samplePath()==expected,"pressure remigrated geometry");
       }
+    auto explicitNew=json{{"engine","samples"},{"pressureResponse","original"}}.get<Config>();
+    bool explicitOn=true;explicitNew.migrateCorrection(explicitOn);
+    check(explicitOn && explicitNew.samplePath(),"new engine schema incorrectly received legacy filter reset");
     auto future=json{{"engine",42},{"pressureResponse","unknown"},{"rendering","future"}}.get<Config>();
     bool on=true;future.migrateCorrection(on);
     check(!future.samplePath(),"invalid engine should fall back safely");

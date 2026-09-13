@@ -20,7 +20,7 @@ struct Config {
     bool correctionIndependent = false; // Migrated once after both configs load.
     bool samplePath() const { return engine == Engine::Samples; }
     void migrateCorrection(bool& correction) {
-        if (!correctionIndependent && pressureResponse == Response::Original) correction=false;
+        if (!pipelineExplicit && !correctionIndependent && pressureResponse == Response::Original) correction=false;
         correctionIndependent=true;
         if (!pipelineExplicit) {
             engine = correction || pressureResponse != Response::Original ? Engine::Samples : Engine::Compatibility;

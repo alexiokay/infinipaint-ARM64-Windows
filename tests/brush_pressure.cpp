@@ -21,7 +21,7 @@ int main() {
             require(!restored.samplePath(), "explicit compatibility changed with pressure");
         }
         for (auto mode : {Response::Original,Response::Preserve,Response::Peak}) {
-            Config c; c.pressureResponse=mode;
+            Config c=json{{"pressureResponse",mode==Response::Original ? "original" : mode==Response::Preserve ? "preserve" : "peak"}}.get<Config>();
             bool correction=true;
             c.migrateCorrection(correction);
             require(correction==(mode!=Response::Original),"old inactive filter migration");
