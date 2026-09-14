@@ -589,7 +589,7 @@ void DrawingProgram::tool_options_gui(Toolbar& t) {
                     .attachTo=CLAY_ATTACH_TO_ROOT
                 }
             }) {
-                left_to_right_layout(gui,CLAY_SIZING_GROW(0),CLAY_SIZING_FIXED(io.theme->controlHeight),[&] {
+                left_to_right_layout(gui,CLAY_SIZING_GROW(0),CLAY_SIZING_FIXED(static_cast<float>(io.theme->controlHeight)),[&] {
                     gui.element<LayoutElement>("drag tool panel",[&](LayoutElement*,const Clay_ElementId& dragId) {
                         CLAY(dragId,{.layout={
                             .sizing={.width=CLAY_SIZING_GROW(0),.height=CLAY_SIZING_GROW(0)},
@@ -646,7 +646,7 @@ void DrawingProgram::tool_options_gui(Toolbar& t) {
                     }});
                 });
                 if (!toolPanelExpanded) {
-                    left_to_right_layout(gui,CLAY_SIZING_GROW(0),CLAY_SIZING_FIXED(io.theme->controlHeight),[&] {
+                    left_to_right_layout(gui,CLAY_SIZING_GROW(0),CLAY_SIZING_FIXED(static_cast<float>(io.theme->controlHeight)),[&] {
                         const auto type=drawTool->get_type();
                         if(type==DrawingProgramToolType::BRUSH || type==DrawingProgramToolType::ERASER) {
                             text_label(gui,type==DrawingProgramToolType::BRUSH ? "Brush" : "Eraser");

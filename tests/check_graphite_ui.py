@@ -73,6 +73,13 @@ class GraphiteUI(unittest.TestCase):
         load = source("src/MainProgram.cpp")
         self.assertLess(load.index('j.at("toolConfig").get_to(toolConfig)'), load.index("toolConfig.brush.migrateCorrection"))
 
+    def test_panel_height_has_explicit_float_conversion(self):
+        # Clay's sizing macro uses C++ aggregate initialization. A runtime uint16_t
+        # argument narrows to float there, even when the theme value is small.
+        panel = source("src/DrawingProgram/DrawingProgram.cpp")
+        self.assertNotRegex(panel, r"CLAY_SIZING_FIXED\(\s*io\.theme->controlHeight\s*\)")
+        self.assertEqual(panel.count("CLAY_SIZING_FIXED(static_cast<float>(io.theme->controlHeight))"), 2)
+
     def test_cursor_overlay_is_separate_from_erase_path(self):
         draw = source("src/DrawingProgram/Tools/EraserTool.cpp").split("void EraserTool::draw(", 1)[1]
         self.assertIn("ToolCursor::visible", draw)
