@@ -1,0 +1,96 @@
+name: ARM64 portable release
+on:
+  workflow_dispatch:
+  push:
+    branches: [graphite-ui]
+    paths:
+      - '.github/workflows/arm64-portable-release.yml'
+      - 'windowsinstall/ci/**'
+permissions:
+  contents: read
+concurrency:
+  group: arm64-portable-release
+  cancel-in-progress: false
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - run: git submodule update --init deps/pen-stabilizer
+      - uses: actions/checkout@v4
+        with:
+          repository: PenTraceTools/pen-trace-lab
+          ref: e13be1ccf06039c46ae9997beb8810fc28bf5929
+          path: replay-source
+      - run: git -C replay-source submodule update --init deps/pen-stabilizer
+      - uses: actions/checkout@v4
+        with:
+          repository: PenTraceTools/pen-trace-lab
+          ref: ef6555a6defd12b8dde5afc408df4975eb4492b2
+          path: reference
+      - name: Validate geometry, pressure, UI wiring and replay
+        run: |
+          python3 tests/check_pen_pressure_setting.py
+          python3 tests/check_graphite_ui.py
+          python3 tests/check_original_compatibility.py
+          cmake -S tests -B build-tests -DPENTRACE_REFERENCE="$PWD/reference" -DPENTRACE_REPLAY_SOURCE="$PWD/replay-source" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          cmake --build build-tests --parallel 2
+          ctest --test-dir build-tests --output-on-failure
+          python3 tests/check_replay.py build-tests/pen_replay
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 360
+    env:
+      CONAN_HOME: C:\c2
+      CMAKE_BUILD_PARALLEL_LEVEL: '3'
+      DEPOT_TOOLS_WIN_TOOLCHAIN: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - run: git submodule update --init deps/clip deps/pen-stabilizer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build tooling on the disposable GitHub runner only
+        run: python -m pip install conan==2.32.0
+      - name: Clean ARM64 Release build and portable packaging
+        shell: pwsh
+        run: ./windowsinstall/ci/build-release.ps1
+      - name: Keep build metadata and logs, including on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-build-diagnostics
+          path: |
+            ci-logs/
+            build-arm64/build/CMakeCache.txt
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arm64-portable-release
+          path: release-output/*
+          if-no-files-found: error
+  publish:
+    needs: [checks, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: arm64-portable-release
+          path: release-output
+      - name: Publish a uniquely versioned prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          tag="arm64-graphite-${RUN_ID}-${RUN_ATTEMPT}"
+          gh release create "$tag" --target "$SOURCE_SHA" --prerelease --latest=false \
+            --title "ARM64 portable · graphite UI · ${SOURCE_SHA:0:8}" \
+            --notes-file release-output/RELEASE_NOTES.md \
+            release-output/*.zip release-output/SHA256SUMS.txt
