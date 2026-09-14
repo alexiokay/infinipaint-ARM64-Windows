@@ -20,7 +20,8 @@ try {
         Invoke-Checked conan @('export',$recipe[0],"--version=$($recipe[1])")
     }
     Invoke-Checked conan @('install','.', '-of=build-arm64','--build=missing',
-        '-pr:h=conan/profiles/win-arm64','-pr:b=default','-c','tools.build:jobs=3',
+        '-pr:h=conan/profiles/win-arm64','-pr:b=default','-s:b','compiler.cppstd=23',
+        '-c','tools.build:jobs=3',
         '--deployer=runtime_deploy','--deployer-folder=ci-runtime',
         '--lockfile-out=ci-logs/conan.lock')
     Invoke-Checked cmd.exe @('/d','/c','windowsinstall\ci\build-app.cmd')
